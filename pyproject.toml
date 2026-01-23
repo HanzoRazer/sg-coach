@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sg-coach"
-version = "0.1.0"
+version = "0.2.0"
 description = "Smart Guitar Practice Coach - Mode 1 rules-first evaluation"
 readme = "README.md"
 license = "MIT"
