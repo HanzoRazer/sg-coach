@@ -33,6 +33,9 @@ REQUIRED_FILES = [
     "vector_meta_v1.json",
 ]
 
+# Bootstrap sentinel: if this file exists at repo root, gate skips when no vectors found
+BOOTSTRAP_SENTINEL = ".sg_coach_bootstrap"
+
 
 @dataclass
 class Violation:
@@ -49,17 +52,24 @@ def _load_json(fp: Path) -> None:
     json.loads(fp.read_text(encoding="utf-8"))
 
 
-def check_vectors(golden_root: Path, debug: bool = False) -> List[Violation]:
+def check_vectors(golden_root: Path, repo_root: Path, debug: bool = False) -> List[Violation]:
     v: List[Violation] = []
     if not golden_root.exists():
+        # Check bootstrap sentinel before failing
+        sentinel = repo_root / BOOTSTRAP_SENTINEL
+        if sentinel.exists():
+            print(f"[vectors] SKIP: golden root not found, bootstrap sentinel present ({BOOTSTRAP_SENTINEL})")
+            return []
         return [Violation("<root>", f"Golden root not found: {golden_root}")]
 
     vector_dirs = sorted([p for p in golden_root.iterdir() if _is_vector_dir(p)])
     if not vector_dirs:
-        # No vectors yet is OK — gate passes silently
-        if debug:
-            print(f"[vectors] No vector_* directories found under: {golden_root}", file=sys.stderr)
-        return []
+        # Check bootstrap sentinel before failing
+        sentinel = repo_root / BOOTSTRAP_SENTINEL
+        if sentinel.exists():
+            print(f"[vectors] SKIP: no vectors yet, bootstrap sentinel present ({BOOTSTRAP_SENTINEL})")
+            return []
+        return [Violation("<root>", f"No vector_* directories found (create fixtures or add {BOOTSTRAP_SENTINEL} to temporarily allow empty)")]
 
     for vd in vector_dirs:
         missing = [name for name in REQUIRED_FILES if not (vd / name).exists()]
@@ -93,11 +103,14 @@ def main() -> int:
         default="tests/golden",
         help="Path to golden fixtures (contains vector_* dirs). Default: tests/golden",
     )
+    ap.add_argument("--repo-root", default=".", help="Repo root for bootstrap sentinel check. Default: .")
     ap.add_argument("--debug", action="store_true", help="Print per-vector status")
     args = ap.parse_args()
 
+    repo_root = Path(args.repo_root).resolve()
+
     try:
-        violations = check_vectors(Path(args.golden_root), debug=args.debug)
+        violations = check_vectors(Path(args.golden_root), repo_root=repo_root, debug=args.debug)
     except Exception as e:
         print(f"[vectors] ERROR: {e}", file=sys.stderr)
         return 2
