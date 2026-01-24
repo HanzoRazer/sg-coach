@@ -208,7 +208,7 @@ def main() -> int:
 
     print("\n[contracts-gov] Hint: re-run with --debug for details.", file=sys.stderr)
 
-    # Auto-debug locally on failure (keeps CI logs clean).
+    # Auto-debug locally on failure (keeps CI logs clean)
     debug = bool(args.debug) or _should_auto_debug()
     if debug:
         try:
@@ -221,7 +221,8 @@ def main() -> int:
             print(f"  contract_changes={len(contract_changes)}", file=sys.stderr)
             print(f"  public_released={public} tag={tag or '<none>'}", file=sys.stderr)
             if contract_changes:
-                print("  contract_change_stems=" + ", ".join(sorted({contract_stem(p) for p in contract_changes})), file=sys.stderr)
+                stems = ", ".join(sorted({contract_stem(p) for p in contract_changes}))
+                print(f"  contract_change_stems={stems}", file=sys.stderr)
         except Exception as e:
             print(f"[contracts-gov] DEBUG ERROR: {e}", file=sys.stderr)
 

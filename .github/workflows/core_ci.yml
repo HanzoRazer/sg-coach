@@ -1,0 +1,40 @@
+name: Core CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "src/sg_coach/**"
+      - "tests/**"
+      - "scripts/ci/**"
+      - "contracts/**"
+      - ".github/workflows/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for git diff origin/main...HEAD
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Contracts Governance Gate (Scenario B)
+        run: python scripts/ci/check_contracts_governance.py --base-ref origin/main
+
+      - name: sg-coach Vector Completeness Gate
+        run: python scripts/ci/check_sg_coach_vectors_complete.py tests/golden
+
+      - name: sg-coach Replay Determinism Gate
+        run: python scripts/ci/check_sg_coach_replay_determinism.py --fixtures tests/golden --seed 123
