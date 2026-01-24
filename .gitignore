@@ -73,3 +73,4 @@ Thumbs.db
 # Project specific
 *.json
 !pyproject.toml
+!contracts/*.json

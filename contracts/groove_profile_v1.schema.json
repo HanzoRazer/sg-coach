@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sg-ai:contracts/groove_profile_v1.schema.json",
+  "title": "Groove Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "profile_id",
+    "scope",
+    "created_at_utc",
+    "updated_at_utc",
+    "confidence_band",
+    "evidence_window",
+    "timing_bias",
+    "tempo_stability",
+    "subdivision_fidelity",
+    "error_recovery",
+    "groove_elasticity"
+  ],
+  "properties": {
+    "schema_id": {
+      "type": "string",
+      "const": "groove_profile"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "v1"
+    },
+
+    "profile_id": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{4,126}[A-Za-z0-9]$"
+    },
+
+    "scope": {
+      "type": "string",
+      "enum": ["device_local", "account_local", "cloud_optional"],
+      "description": "Identity scope for the profile. For B2 device-local identity, use device_local."
+    },
+
+    "created_at_utc": { "type": "string", "format": "date-time" },
+    "updated_at_utc": { "type": "string", "format": "date-time" },
+
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generator", "generator_version"],
+      "properties": {
+        "generator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Name of generator component (e.g., groove_layer)"
+        },
+        "generator_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([+-].*)?$",
+          "description": "Semver of the generator"
+        },
+        "build_git_sha": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 64,
+          "pattern": "^[0-9a-fA-F]+$",
+          "description": "Optional git SHA"
+        }
+      }
+    },
+
+    "confidence_band": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lower", "upper"],
+      "properties": {
+        "lower": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "upper": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+
+    "evidence_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sessions", "events"],
+      "properties": {
+        "sessions": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+        "events": { "type": "integer", "minimum": 0, "maximum": 1000000000 },
+        "window_days": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 3650.0,
+          "description": "Optional: approximate window duration in days used to compute the profile."
+        }
+      }
+    },
+
+    "timing_bias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mean_offset_ms", "stddev_ms", "direction", "confidence"],
+      "properties": {
+        "mean_offset_ms": {
+          "type": "number",
+          "minimum": -500.0,
+          "maximum": 500.0,
+          "description": "Negative = ahead of beat; positive = behind."
+        },
+        "stddev_ms": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 500.0,
+          "description": "Timing jitter estimate."
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["ahead", "behind", "centered", "oscillatory"],
+          "description": "Qualitative direction of bias."
+        },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+
+    "tempo_stability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported_bpm_range", "drift_slope", "fatigue_sensitivity", "confidence"],
+      "properties": {
+        "supported_bpm_range": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 20, "maximum": 320 },
+          "description": "Inclusive BPM range where player maintains acceptable stability."
+        },
+        "drift_slope": {
+          "type": "number",
+          "minimum": -1.0,
+          "maximum": 1.0,
+          "description": "Signed drift per second or per unit time (implementation-defined); keep bounded."
+        },
+        "fatigue_sensitivity": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "How quickly stability degrades over session duration."
+        },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+
+    "subdivision_fidelity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "unstable", "swing_tolerance", "confidence"],
+      "properties": {
+        "supported": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subdivision" },
+          "uniqueItems": true
+        },
+        "unstable": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/subdivision" },
+          "uniqueItems": true
+        },
+        "swing_tolerance": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Higher = more comfortable with swung/uneven subdivisions."
+        },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+
+    "error_recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mean_recovery_beats", "panic_probability", "self_correction_rate"],
+      "properties": {
+        "mean_recovery_beats": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 128.0,
+          "description": "Average beats to return to stable groove after an error."
+        },
+        "panic_probability": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Probability of cascading errors after a disruption."
+        },
+        "self_correction_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Rate of spontaneous correction without external guidance."
+        }
+      }
+    },
+
+    "groove_elasticity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["microtiming_flex_ms", "lock_threshold", "push_pull_balance"],
+      "properties": {
+        "microtiming_flex_ms": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 250.0,
+          "description": "Comfortable microtiming variation range (ms)."
+        },
+        "lock_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "How strongly accompaniment should lock to player vs float."
+        },
+        "push_pull_balance": {
+          "type": "string",
+          "enum": ["push", "pull", "balanced"],
+          "description": "Tendency to push ahead, pull behind, or remain balanced when expressive."
+        }
+      }
+    },
+
+    "notes": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Optional human notes (debug/ops). Keep SG-only; never export to ToolBox."
+    },
+
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Forward-compatible namespace for additive fields. Consumers should ignore unknown keys."
+    }
+  },
+
+  "$defs": {
+    "subdivision": {
+      "type": "string",
+      "enum": [
+        "whole",
+        "half",
+        "quarter",
+        "eighth",
+        "sixteenth",
+        "thirty_second",
+        "triplet_quarter",
+        "triplet_eighth",
+        "triplet_sixteenth"
+      ]
+    }
+  }
+}
