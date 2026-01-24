@@ -223,12 +223,20 @@ def replay_vector_dir(
 
             return ReplayResult(True, f"Updated golden: {vector_dir.name}")
 
+        # Always write mismatch artifacts for diagnosis (even without --update-golden)
+        _write_normalized_diff_txt(
+            vector_dir=vector_dir,
+            expected_norm=exp_norm,
+            produced_norm=prod_norm,
+        )
+        (vector_dir / "_produced.intent.json").write_text(_dump_json(produced), encoding="utf-8")
+
         msg = (
             f"Replay mismatch in {vector_dir.name}\n"
             f"- produced != expected (after normalization)\n"
+            f"Artifacts written: _diff.txt, _produced.intent.json\n"
             f"Tip: run with --update-golden (and bump changelog) to accept.\n"
         )
-        (vector_dir / "_produced.intent.json").write_text(_dump_json(produced), encoding="utf-8")
         return ReplayResult(False, msg, [vector_dir.name])
 
     return ReplayResult(True, f"Replay OK: {vector_dir.name}")
