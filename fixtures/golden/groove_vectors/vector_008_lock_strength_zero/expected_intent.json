@@ -1,0 +1,16 @@
+{
+  "schema_id": "groove_control_intent",
+  "schema_version": "v1",
+  "intent_id": "gci_IGNORE",
+  "profile_id": "gp_vector008",
+  "generated_at_utc": "IGNORE",
+  "horizon_ms": 2000,
+  "confidence": 0.72,
+  "control_modes": ["follow", "assist"],
+  "tempo": { "target_bpm": 100.0, "lock_strength": 0.0, "drift_correction": "soft" },
+  "timing": { "microshift_ms": 10.0, "anticipation_bias": "behind" },
+  "dynamics": { "assist_gain": 0.79, "expression_window": 1.0 },
+  "recovery": { "enabled": false, "grace_beats": 1.5 },
+  "reason_codes": ["profile_to_intent_v1"],
+  "extensions": {}
+}
