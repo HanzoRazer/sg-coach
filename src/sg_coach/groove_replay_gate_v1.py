@@ -386,10 +386,13 @@ def main() -> int:
             bump_changelog_reason=args.bump_changelog,
         )
 
+    prefix = f"[groove-replay][engine={ENGINE_IDENTITY}]"
+
     if res.ok:
-        print(f"[groove-replay] PASS: {res.message}")
+        print(f"{prefix} PASS: {res.message}")
         return 0
-    print(f"[groove-replay] FAIL: {res.message}")
+
+    print(f"{prefix} FAIL: {res.message}")
     return 1
 
 
