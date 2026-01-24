@@ -1,0 +1,36 @@
+name: CI / Groove Vectors
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  groove-vectors:
+    name: Groove vectors gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install sg-coach (dev)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Vectors complete
+        run: |
+          python scripts/ci/check_groove_vectors_complete.py
+
+      - name: Replay determinism
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python scripts/ci/check_groove_replay_determinism.py
