@@ -27,7 +27,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from sg_coach.groove_intent_engine_v1 import generate_groove_control_intent_v1
+from sg_coach.groove_intent_engine_v1 import (
+    ENGINE_IDENTITY,
+    generate_groove_control_intent_v1,
+)
 
 
 @dataclass(frozen=True)
@@ -116,6 +119,7 @@ def _write_normalized_diff_txt(
         f"# Vector: {vector_name}",
         f"# Reproduce: python -m sg_coach.groove_replay_gate_v1 {rel_path}",
         f"# Engine git sha: {sha}",
+        f"# Engine identity: {ENGINE_IDENTITY}",
         "",
     ]
 

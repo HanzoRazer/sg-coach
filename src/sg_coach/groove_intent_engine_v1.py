@@ -11,6 +11,11 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
+# Engine identity for diff headers and lineage tracking
+ENGINE_SCHEMA_VERSION: str = "v1"
+ENGINE_SALT: str = "v1"  # bump only when you intentionally change intent-id lineage / baseline mapping
+ENGINE_IDENTITY: str = f"{ENGINE_SCHEMA_VERSION}+salt:{ENGINE_SALT}"
+
 
 def _clamp(x: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, x))
@@ -20,7 +25,7 @@ def _midpoint(r: Tuple[float, float]) -> float:
     return (float(r[0]) + float(r[1])) / 2.0
 
 
-def _stable_intent_id(profile_id: str, salt: str = "v1") -> str:
+def _stable_intent_id(profile_id: str, salt: str = ENGINE_SALT) -> str:
     h = hashlib.sha256(f"{salt}:{profile_id}".encode("utf-8")).hexdigest()[:12]
     return f"gci_{h}"
 
