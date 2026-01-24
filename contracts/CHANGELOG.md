@@ -14,6 +14,18 @@ Each entry includes:
 
 ## 2026-01-24
 
+### groove_control_intent_v1.schema.json
+
+- **SHA256**: `sha256:3659ba6528e0b9174b006e7534e716c37be5eedee5ae1669cbe95a355d35cb4f`
+- **Status**: `v1-locked`
+- **Notes**: Prescriptive control output derived from Groove Profile.
+  - Defines Profile → Intent boundary (what vs what-to-do-next)
+  - Ephemeral (no learning state leaks)
+  - Latency-safe via `horizon_ms` (50–60000ms validity window)
+  - Control modes: follow, assist, stabilize, challenge, recover
+  - Reason codes for debug/analysis tracing
+  - Never export to ToolBox (SG internal contract)
+
 ### groove_profile_v1.schema.json
 
 - **SHA256**: `sha256:afa948a4c6e52b0713d2df11a3a948342c9423fd864188a0c99cf753de57f7c4`

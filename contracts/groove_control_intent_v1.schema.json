@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sg-ai:contracts/groove_control_intent_v1.schema.json",
+  "title": "Groove Control Intent v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "intent_id",
+    "profile_id",
+    "generated_at_utc",
+    "horizon_ms",
+    "confidence",
+    "control_modes",
+    "tempo",
+    "timing",
+    "dynamics",
+    "recovery"
+  ],
+  "properties": {
+    "schema_id": {
+      "type": "string",
+      "const": "groove_control_intent"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "v1"
+    },
+
+    "intent_id": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{4,126}[A-Za-z0-9]$"
+    },
+
+    "profile_id": {
+      "type": "string",
+      "description": "Source Groove Profile that informed this intent."
+    },
+
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+
+    "horizon_ms": {
+      "type": "integer",
+      "minimum": 50,
+      "maximum": 60000,
+      "description": "How long this intent is valid before regeneration."
+    },
+
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "System confidence in applying this intent."
+    },
+
+    "control_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "follow",
+          "assist",
+          "stabilize",
+          "challenge",
+          "recover"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Active high-level control strategies."
+    },
+
+    "tempo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_bpm", "lock_strength", "drift_correction"],
+      "properties": {
+        "target_bpm": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 320
+        },
+        "lock_strength": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "0 = free follow, 1 = hard lock."
+        },
+        "drift_correction": {
+          "type": "string",
+          "enum": ["none", "soft", "aggressive"]
+        }
+      }
+    },
+
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["microshift_ms", "anticipation_bias"],
+      "properties": {
+        "microshift_ms": {
+          "type": "number",
+          "minimum": -250.0,
+          "maximum": 250.0,
+          "description": "Signed microtiming offset to apply."
+        },
+        "anticipation_bias": {
+          "type": "string",
+          "enum": ["ahead", "behind", "neutral"]
+        }
+      }
+    },
+
+    "dynamics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assist_gain", "expression_window"],
+      "properties": {
+        "assist_gain": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "How much the system reinforces weak dynamics."
+        },
+        "expression_window": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Allowed expressive deviation before correction."
+        }
+      }
+    },
+
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "grace_beats"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "grace_beats": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 64.0,
+          "description": "Beats allowed before corrective intervention."
+        }
+      }
+    },
+
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "tempo_drift",
+          "timing_jitter",
+          "fatigue",
+          "confidence_drop",
+          "challenge_escalation",
+          "recovery_needed"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Why this intent was selected (debug/analysis)."
+    },
+
+    "notes": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Optional human-readable notes. SG-only."
+    },
+
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Forward-compatible extension space."
+    }
+  }
+}
