@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -108,6 +109,13 @@ def main() -> int:
     args = ap.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
+
+    # Guard: bootstrap sentinel must never exist on main/master
+    branch = os.environ.get("GITHUB_REF_NAME", "")
+    sentinel = repo_root / BOOTSTRAP_SENTINEL
+    if branch in ("main", "master") and sentinel.exists():
+        print(f"[vectors] FAIL: {BOOTSTRAP_SENTINEL} must never be present on {branch}", file=sys.stderr)
+        return 1
 
     try:
         violations = check_vectors(Path(args.golden_root), repo_root=repo_root, debug=args.debug)
