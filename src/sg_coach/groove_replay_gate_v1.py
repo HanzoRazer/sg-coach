@@ -78,6 +78,19 @@ def _write_normalized_diff_txt(
     (vector_dir / "_diff.txt").write_text(out, encoding="utf-8")
 
 
+def _cleanup_mismatch_artifacts(vector_dir: Path) -> None:
+    """
+    Keep vector dirs clean: if a vector passes, remove any old mismatch artifacts.
+    """
+    for name in ("_diff.txt", "_produced.intent.json"):
+        p = vector_dir / name
+        try:
+            if p.exists():
+                p.unlink()
+        except Exception:
+            # Never fail the gate due to cleanup issues.
+            pass
+
 def _deep_copy(obj: Dict[str, Any]) -> Dict[str, Any]:
     return json.loads(json.dumps(obj))
 
@@ -239,6 +252,8 @@ def replay_vector_dir(
         )
         return ReplayResult(False, msg, [vector_dir.name])
 
+    # If we get here, vector passes — clean up any stale mismatch artifacts
+    _cleanup_mismatch_artifacts(vector_dir)
     return ReplayResult(True, f"Replay OK: {vector_dir.name}")
 
 
