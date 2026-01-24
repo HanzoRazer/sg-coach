@@ -20,6 +20,8 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import os
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -54,6 +56,29 @@ def _stable_json_lines(obj: Dict[str, Any]) -> List[str]:
     return txt.splitlines(keepends=True)
 
 
+def _git_sha_or_unknown(repo_root: Path) -> str:
+    """
+    Best-effort git SHA for diff headers.
+    - Uses GITHUB_SHA if present (CI)
+    - Otherwise tries `git rev-parse --short HEAD` in repo_root
+    - Returns "unknown" if unavailable (e.g., no .git)
+    """
+    env_sha = os.environ.get("GITHUB_SHA")
+    if env_sha:
+        return env_sha[:12]
+
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(repo_root),
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return out or "unknown"
+    except Exception:
+        return "unknown"
+
+
 def _write_normalized_diff_txt(
     *,
     vector_dir: Path,
@@ -66,7 +91,8 @@ def _write_normalized_diff_txt(
 
     Header includes:
     - vector name
-    - exact command to reproduce locally
+    - reproduce command
+    - git sha (best-effort)
     """
     a = _stable_json_lines(expected_norm)
     b = _stable_json_lines(produced_norm)
@@ -82,9 +108,14 @@ def _write_normalized_diff_txt(
     vector_name = vector_dir.name
     rel_path = f"fixtures/golden/groove_vectors/{vector_name}"
 
+    # repo root = .../src/sg_coach/.. -> repo
+    repo_root = Path(__file__).resolve().parents[2]
+    sha = _git_sha_or_unknown(repo_root)
+
     header = [
         f"# Vector: {vector_name}",
         f"# Reproduce: python -m sg_coach.groove_replay_gate_v1 {rel_path}",
+        f"# Engine git sha: {sha}",
         "",
     ]
 
