@@ -1,11 +1,12 @@
 """
-Tests for assignment serializer (UUID-safe JSON export).
+Tests for sgc ota-verify-zip CLI command.
 """
 from __future__ import annotations
 
-import json
+from pathlib import Path
 from uuid import uuid4
 
+from sg_coach.cli import main
 from sg_coach.schemas import (
     SessionRecord,
     SessionTiming,
@@ -17,7 +18,7 @@ from sg_coach.schemas import (
 )
 from sg_coach.coach_policy import evaluate_session
 from sg_coach.assignment_policy import plan_assignment
-from sg_coach.assignment_serializer import serialize_bundle, deserialize_bundle
+from sg_coach.ota_payload import build_assignment_ota_bundle
 
 
 def _make_session() -> SessionRecord:
@@ -47,33 +48,18 @@ def _make_session() -> SessionRecord:
     )
 
 
-def test_assignment_serializer_uuid_safe():
-    """Serialized assignment should have string UUIDs, not UUID objects."""
+def test_sgc_ota_verify_zip_ok(tmp_path: Path):
+    """sgc ota-verify-zip should succeed for valid bundle zip."""
     session = _make_session()
     ev = evaluate_session(session)
     assignment = plan_assignment(ev, session.program_ref)
 
-    data = serialize_bundle(assignment)
+    res = build_assignment_ota_bundle(
+        assignment=assignment,
+        out_dir=tmp_path,
+        make_zip=True,
+    )
 
-    # Must be JSON serializable
-    dumped = json.dumps(data)
-    assert "payload" in data
-    payload = data["payload"]
-    assert "assignment_id" in payload
-    assert payload["session_id"] == str(session.session_id)
-    assert isinstance(payload["assignment_id"], str)
-
-
-def test_assignment_to_json_roundtrip():
-    """serialize_bundle/deserialize_bundle should round-trip."""
-    session = _make_session()
-    ev = evaluate_session(session)
-    assignment = plan_assignment(ev, session.program_ref)
-
-    data = serialize_bundle(assignment)
-    recovered = deserialize_bundle(data)
-
-    assert recovered.assignment_id == assignment.assignment_id
-    assert recovered.session_id == assignment.session_id
-    assert recovered.program.name == assignment.program.name
-    assert recovered.constraints.tempo_start == assignment.constraints.tempo_start
+    assert res.zip_path is not None
+    rc = main(["ota-verify-zip", str(res.zip_path)])
+    assert rc == 0

@@ -1,7 +1,7 @@
 """
 Coach Contract Version Pin
 
-Bump this ONLY when the deterministic behavior of:
+Bump ONLY when deterministic behavior of:
 SessionRecord -> CoachEvaluation -> PracticeAssignment
 changes in a way that invalidates golden vectors or OTA expectations.
 """

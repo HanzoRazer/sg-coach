@@ -1,140 +1,60 @@
 """
-UUID-safe JSON serialization for OTA / firmware payloads.
+Assignment Serializer: PracticeAssignment -> on-wire JSON bundle.
 
-Converts SessionRecord, CoachEvaluation, PracticeAssignment into
-deterministic JSON with:
-- UUIDs as strings
-- Datetimes as ISO-8601 with 'Z' suffix
-- Stable key ordering (sort_keys=True)
+Produces a FirmwareEnvelope suitable for OTA delivery.
 """
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict
 
-from .schemas import CoachEvaluation, PracticeAssignment, SessionRecord
+from pydantic import BaseModel, ConfigDict, Field
+
+from .schemas import PracticeAssignment
 
 
 def _iso_z(dt: datetime) -> str:
-    """
-    Convert datetime to an ISO-8601 string with 'Z' (UTC) suffix.
-    Accepts naive UTC datetimes (common in codebases that use datetime.utcnow()).
-    """
+    """Format datetime as ISO 8601 with Z suffix."""
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        dt = dt.astimezone(timezone.utc)
-    # Use seconds precision by default; firmware generally prefers compact stability.
-    s = dt.isoformat(timespec="seconds")
-    return s.replace("+00:00", "Z")
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _json_safe_model_dict(model: Any) -> Dict[str, Any]:
+class FirmwareEnvelope(BaseModel):
+    """Wrapper for OTA delivery of assignment."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: str = Field(default="1.0.0")
+    bundle_type: str = Field(default="assignment")
+    created_at: str  # ISO 8601
+    payload: Dict[str, Any]
+
+
+def serialize_bundle(assignment: PracticeAssignment) -> Dict[str, Any]:
     """
-    Pydantic v2: model_dump(mode="json") converts UUID/datetime to JSON-safe types.
-    We still normalize datetime formatting to Z where present.
+    Convert PracticeAssignment to on-wire JSON envelope.
+
+    Returns a dict that can be JSON-serialized for OTA delivery.
     """
-    d: Dict[str, Any] = model.model_dump(mode="json")  # type: ignore[attr-defined]
+    payload = assignment.model_dump(mode="json")
 
-    # Normalize any well-known datetime keys to Z
-    for key in ("created_at",):
-        if key in d and isinstance(d[key], str):
-            # If it's already Z, keep; otherwise best-effort parse is out-of-scope.
-            # We only guarantee Z when inputs were datetimes.
-            pass
-    return d
+    envelope = FirmwareEnvelope(
+        created_at=_iso_z(assignment.created_at),
+        payload=payload,
+    )
+
+    return envelope.model_dump(mode="json")
 
 
-@dataclass(frozen=True)
-class FirmwareEnvelope:
+def deserialize_bundle(data: Dict[str, Any]) -> PracticeAssignment:
     """
-    OTA-friendly wrapper:
-    - Adds stable kind + schema_version
-    - Allows bundling multiple artifacts in one message
+    Reconstruct PracticeAssignment from on-wire envelope.
+
+    Validates the envelope structure before extracting the payload.
     """
-
-    kind: Literal["sg_coach_bundle"] = "sg_coach_bundle"
-    schema_version: str = "v1"
-    created_at_utc: Optional[datetime] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "kind": self.kind,
-            "schema_version": self.schema_version,
-            "created_at": _iso_z(self.created_at_utc or datetime.now(timezone.utc)),
-        }
+    envelope = FirmwareEnvelope.model_validate(data)
+    return PracticeAssignment.model_validate(envelope.payload)
 
 
-def serialize_session(session: SessionRecord) -> Dict[str, Any]:
-    """
-    SessionRecord -> JSON-safe dict for storage/OTA.
-    """
-    d = _json_safe_model_dict(session)
-    # enforce Z formatting for created_at
-    if isinstance(session.created_at, datetime):
-        d["created_at"] = _iso_z(session.created_at)
-    return d
-
-
-def serialize_evaluation(evaluation: CoachEvaluation) -> Dict[str, Any]:
-    """
-    CoachEvaluation -> JSON-safe dict for storage/OTA.
-    """
-    d = _json_safe_model_dict(evaluation)
-    if isinstance(evaluation.created_at, datetime):
-        d["created_at"] = _iso_z(evaluation.created_at)
-    return d
-
-
-def serialize_assignment(assignment: PracticeAssignment) -> Dict[str, Any]:
-    """
-    PracticeAssignment -> JSON-safe dict for storage/OTA.
-    """
-    d = _json_safe_model_dict(assignment)
-    if isinstance(assignment.created_at, datetime):
-        d["created_at"] = _iso_z(assignment.created_at)
-    return d
-
-
-def serialize_bundle(
-    *,
-    session: SessionRecord,
-    evaluation: CoachEvaluation,
-    assignment: PracticeAssignment,
-    envelope: Optional[FirmwareEnvelope] = None,
-) -> Dict[str, Any]:
-    """
-    Wrap the triad (Session -> Coach -> Assignment) into one OTA payload.
-    """
-    env = envelope or FirmwareEnvelope()
-    return {
-        **env.to_dict(),
-        "session": serialize_session(session),
-        "evaluation": serialize_evaluation(evaluation),
-        "assignment": serialize_assignment(assignment),
-    }
-
-
-def dumps_json(obj: Dict[str, Any], *, pretty: bool = False) -> str:
-    """
-    Stable JSON encoder:
-    - sort_keys=True: deterministic output
-    - separators: compact by default
-    """
-    if pretty:
-        return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
-
-
-def dump_json_file(path: str | Path, obj: Dict[str, Any], *, pretty: bool = False) -> Path:
-    """
-    Write JSON to file with stable formatting.
-    Creates parent directories if needed.
-    """
-    p = Path(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(dumps_json(obj, pretty=pretty), encoding="utf-8")
-    return p
+__all__ = ["FirmwareEnvelope", "serialize_bundle", "deserialize_bundle"]

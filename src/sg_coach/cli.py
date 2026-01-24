@@ -1,231 +1,314 @@
 """
-sg-coach CLI: Smart Guitar coaching utilities (Mode 1 rules-first).
+Smart Guitar Coach CLI.
 
 Commands:
-    export-bundle   Read SessionRecord JSON and emit OTA bundle JSON
-    ota-pack        Wrap bundle into OTA payload with SHA256 + optional HMAC
-    ota-verify      Verify OTA payload integrity and signature
+- sgc export-bundle: Build firmware envelope from evaluation + assignment
+- sgc ota-pack: Build OTA payload with HMAC signature
+- sgc ota-verify: Verify HMAC-signed OTA payload
+- sgc ota-bundle: Build OTA folder/zip bundle from SessionRecord
+- sgc ota-verify-zip: Verify bundle.zip integrity
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+import tempfile
+import zipfile
 from pathlib import Path
-from typing import Any, Dict
 
+from .schemas import ProgramRef, ProgramType, SessionRecord
+from .coach_policy import evaluate_session
 from .assignment_policy import plan_assignment
-from .assignment_serializer import dump_json_file, serialize_bundle
-from .schemas import CoachEvaluation, PracticeAssignment, SessionRecord
-from .ota_payload import OtaEnvelope, build_ota_payload, read_json, verify_ota_payload, write_json
+from .assignment_serializer import serialize_bundle
+from .ota_payload import (
+    build_ota_payload,
+    verify_ota_payload,
+    build_assignment_ota_bundle,
+    verify_bundle_integrity,
+    verify_zip_bundle,
+)
 
 
-def _read_json(path: str | Path) -> Dict[str, Any]:
-    """Read and validate a JSON file as a dict."""
+def _read_text(path: str | Path) -> str:
+    """Read text from a file, raising FileNotFoundError if missing."""
     p = Path(path)
-    with p.open("r", encoding="utf-8") as f:
-        obj = json.load(f)
-    if not isinstance(obj, dict):
-        raise ValueError(f"Expected JSON object at root of {p}")
-    return obj
+    if not p.exists():
+        raise FileNotFoundError(str(p))
+    return p.read_text(encoding="utf-8")
 
 
-def _ensure_parent(path: str | Path) -> None:
-    """Create parent directories if needed."""
-    p = Path(path)
-    if p.parent and str(p.parent) not in (".", ""):
-        p.parent.mkdir(parents=True, exist_ok=True)
+def _read_json(path: str | Path) -> dict:
+    """Read JSON from a file."""
+    return json.loads(_read_text(path))
 
 
-def _evaluate_session_safe(session: SessionRecord) -> CoachEvaluation:
+def _find_bundle_root(extract_dir: Path) -> Path:
     """
-    Evaluate session, importing coach_policy only when needed.
-    This avoids circular imports if coach_policy grows.
+    Find the directory containing manifest.json.
+    
+    Supports:
+      - zip with files at root
+      - zip with a single top-level folder
     """
-    from .coach_policy import evaluate_session
-    return evaluate_session(session)
+    if (extract_dir / "manifest.json").exists():
+        return extract_dir
+
+    matches = list(extract_dir.rglob("manifest.json"))
+    if not matches:
+        raise ValueError("manifest.json not found in zip")
+    if len(matches) > 1:
+        raise ValueError("multiple manifest.json found in zip (ambiguous)")
+    return matches[0].parent
+
+
+# ============================================================================
+# Commands: Export Bundle (JSON envelope)
+# ============================================================================
 
 
 def cmd_export_bundle(args: argparse.Namespace) -> int:
     """
-    sg-coach export-bundle --in session.json --out bundle.json
-
-    Input: a JSON object matching SessionRecord (JSON-safe)
-    Output: an OTA-safe bundle JSON (Session -> CoachEvaluation -> PracticeAssignment)
+    Build firmware envelope from session -> evaluation -> assignment.
+    Outputs JSON to stdout or file.
     """
-    try:
-        session_dict = _read_json(args.in_path)
-        session = SessionRecord.model_validate(session_dict)
+    session_json = _read_text(args.session)
+    session = SessionRecord.model_validate_json(session_json)
 
-        evaluation: CoachEvaluation = _evaluate_session_safe(session)
-        assignment: PracticeAssignment = plan_assignment(session=session, evaluation=evaluation)
+    ev = evaluate_session(session)
 
-        bundle = serialize_bundle(session=session, evaluation=evaluation, assignment=assignment)
-        _ensure_parent(args.out_path)
-        dump_json_file(args.out_path, bundle, pretty=bool(args.pretty))
-        return 0
-    except Exception as e:
-        # Keep failure surface stable for scripting/CI.
-        msg = f"[sg-coach] export-bundle failed: {e}"
-        print(msg, file=sys.stderr)
-        return 2
+    # Build program ref (use session's program if available)
+    program = session.program_ref
+
+    assignment = plan_assignment(ev, program)
+    bundle = serialize_bundle(assignment)
+
+    output = json.dumps(bundle, indent=2, sort_keys=True)
+
+    if args.output:
+        Path(args.output).write_text(output + "\n", encoding="utf-8")
+        print(f"Written to {args.output}")
+    else:
+        print(output)
+
+    return 0
+
+
+# ============================================================================
+# Commands: OTA Pack (HMAC signed JSON)
+# ============================================================================
 
 
 def cmd_ota_pack(args: argparse.Namespace) -> int:
     """
-    sg-coach ota-pack --bundle bundle.json --out payload.json
-    Optionally sign with HS256 for Gen-1: --hmac-key HEX --kid dev-hmac
+    Build HMAC-signed OTA payload from session.
     """
-    try:
-        bundle = read_json(args.bundle_path)
+    session_json = _read_text(args.session)
+    session = SessionRecord.model_validate_json(session_json)
 
-        key: bytes | None = None
-        if args.hmac_key is not None:
-            key = bytes.fromhex(args.hmac_key)
+    ev = evaluate_session(session)
+    program = session.program_ref
+    assignment = plan_assignment(ev, program)
 
-        env = OtaEnvelope(
-            coach_version=args.coach_version,
-            engine_contract=args.engine_contract,
-        )
-        payload = build_ota_payload(
-            bundle_obj=bundle,
-            envelope=env,
-            signer_key=key,
-            signer_kid=args.kid,
-        )
-        write_json(args.out_path, payload, pretty=bool(args.pretty))
+    # Read secret if provided
+    secret = None
+    if args.secret:
+        secret = args.secret.encode("utf-8")
+    elif args.secret_file:
+        secret = Path(args.secret_file).read_bytes().strip()
+
+    payload = build_ota_payload(assignment, secret=secret)
+
+    output = json.dumps(payload, indent=2, sort_keys=True)
+
+    if args.output:
+        Path(args.output).write_text(output + "\n", encoding="utf-8")
+        print(f"Written to {args.output}")
+    else:
+        print(output)
+
+    return 0
+
+
+def cmd_ota_verify_hmac(args: argparse.Namespace) -> int:
+    """
+    Verify HMAC signature of OTA payload.
+    """
+    payload_json = _read_text(args.payload)
+    payload = json.loads(payload_json)
+
+    # Read secret
+    if args.secret:
+        secret = args.secret.encode("utf-8")
+    elif args.secret_file:
+        secret = Path(args.secret_file).read_bytes().strip()
+    else:
+        print("ERROR: --secret or --secret-file required", file=sys.stderr)
+        return 1
+
+    if verify_ota_payload(payload, secret=secret):
+        print("OK: signature valid")
         return 0
-    except Exception as e:
-        print(f"[sg-coach] ota-pack failed: {e}", file=sys.stderr)
-        return 2
+    else:
+        print("FAIL: signature invalid or missing")
+        return 1
 
 
-def cmd_ota_verify(args: argparse.Namespace) -> int:
+# ============================================================================
+# Commands: OTA Bundle (folder/zip)
+# ============================================================================
+
+
+def cmd_ota_bundle(args: argparse.Namespace) -> int:
     """
-    sg-coach ota-verify --payload payload.json [--hmac-key HEX]
+    Build an OTA bundle folder/zip from a SessionRecord JSON.
+    Mode 1 pipeline: SessionRecord -> CoachEvaluation -> PracticeAssignment -> OTA bundle.
     """
-    try:
-        payload = read_json(args.payload_path)
-        key: bytes | None = None
-        if args.hmac_key is not None:
-            key = bytes.fromhex(args.hmac_key)
-        ok, reason = verify_ota_payload(payload, signer_key=key)
-        if ok:
-            print(f"ok: {reason}")
-            return 0
-        print(f"fail: {reason}", file=sys.stderr)
-        return 3
-    except Exception as e:
-        print(f"[sg-coach] ota-verify failed: {e}", file=sys.stderr)
-        return 2
+    session_json = _read_text(args.session)
+    session = SessionRecord.model_validate_json(session_json)
+
+    ev = evaluate_session(session)
+    program = session.program_ref
+    assignment = plan_assignment(ev, program)
+
+    make_zip = bool(args.zip)
+
+    # HMAC secret if provided
+    hmac_secret = None
+    if args.secret:
+        hmac_secret = args.secret.encode("utf-8")
+    elif args.secret_file:
+        hmac_secret = Path(args.secret_file).read_bytes().strip()
+
+    res = build_assignment_ota_bundle(
+        assignment=assignment,
+        out_dir=args.out,
+        bundle_name=args.name,
+        product=args.product,
+        target_device_model=args.device_model,
+        target_min_firmware=args.min_firmware,
+        attachments=None,
+        make_zip=make_zip,
+        hmac_secret=hmac_secret,
+    )
+
+    print(str(res.bundle_dir))
+    if res.zip_path is not None:
+        print(str(res.zip_path))
+
+    return 0
+
+
+def cmd_ota_verify_folder(args: argparse.Namespace) -> int:
+    """
+    Verify an OTA bundle directory (folder form).
+    """
+    bundle_dir = Path(args.bundle_dir)
+
+    if not verify_bundle_integrity(bundle_dir):
+        print("FAIL: bundle integrity check failed")
+        return 1
+
+    print("OK")
+    return 0
+
+
+def cmd_ota_verify_zip(args: argparse.Namespace) -> int:
+    """
+    Verify a bundle.zip by extracting to a temp dir and verifying.
+    """
+    zip_path = Path(args.zip_path)
+
+    # Read secret if provided
+    secret = None
+    if args.secret:
+        secret = args.secret.encode("utf-8")
+    elif args.secret_file:
+        secret = Path(args.secret_file).read_bytes().strip()
+
+    success, error = verify_zip_bundle(zip_path, secret=secret)
+
+    if success:
+        print("OK")
+        return 0
+    else:
+        print(f"FAIL: {error}")
+        return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the sg-coach argument parser."""
+    """Build the CLI argument parser."""
     p = argparse.ArgumentParser(
-        prog="sg-coach",
-        description="Smart Guitar coaching utilities (Mode 1 rules-first).",
+        prog="sgc",
+        description="Smart Guitar Coach CLI (Mode 1 / OTA tools)",
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    # export-bundle
-    p_exp = sub.add_parser(
-        "export-bundle",
-        help="Read SessionRecord JSON and emit OTA bundle JSON (Session->Coach->Assignment).",
-    )
-    p_exp.add_argument(
-        "--in",
-        dest="in_path",
-        required=True,
-        help="Path to session.json (must match SessionRecord JSON shape).",
-    )
-    p_exp.add_argument(
-        "--out",
-        dest="out_path",
-        required=True,
-        help="Path to write bundle.json.",
-    )
-    p_exp.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Pretty-print output JSON (indent=2). Default is compact deterministic JSON.",
-    )
-    p_exp.set_defaults(func=cmd_export_bundle)
+    # --- export-bundle ---
+    p_e = sub.add_parser("export-bundle", help="Build firmware envelope JSON from SessionRecord.")
+    p_e.add_argument("--session", required=True, help="Path to session.json (SessionRecord).")
+    p_e.add_argument("--output", "-o", default=None, help="Output file (stdout if omitted).")
+    p_e.set_defaults(func=cmd_export_bundle)
 
-    # ota-pack
-    p_pack = sub.add_parser(
-        "ota-pack",
-        help="Wrap bundle.json into an OTA payload with sha256 (and optional HS256 signature).",
-    )
-    p_pack.add_argument(
-        "--bundle",
-        dest="bundle_path",
-        required=True,
-        help="Path to bundle.json (sg_coach_bundle v1).",
-    )
-    p_pack.add_argument(
-        "--out",
-        dest="out_path",
-        required=True,
-        help="Path to write payload.json.",
-    )
-    p_pack.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Pretty-print output JSON.",
-    )
-    p_pack.add_argument(
-        "--coach-version",
-        default="coach-rules@0.1.0",
-        help="Coach version string to embed in header.",
-    )
-    p_pack.add_argument(
-        "--engine-contract",
-        default="zt-band-rt@v1",
-        help="Engine contract string to embed in header.",
-    )
-    p_pack.add_argument(
-        "--hmac-key",
-        default=None,
-        help="Hex-encoded HMAC key (HS256) for signing (optional).",
-    )
-    p_pack.add_argument(
-        "--kid",
-        default="dev-hmac",
-        help="Key id for signature header (default: dev-hmac).",
-    )
-    p_pack.set_defaults(func=cmd_ota_pack)
+    # --- ota-pack ---
+    p_p = sub.add_parser("ota-pack", help="Build HMAC-signed OTA payload JSON.")
+    p_p.add_argument("--session", required=True, help="Path to session.json (SessionRecord).")
+    p_p.add_argument("--secret", default=None, help="HMAC secret string.")
+    p_p.add_argument("--secret-file", default=None, help="Path to file containing HMAC secret.")
+    p_p.add_argument("--output", "-o", default=None, help="Output file (stdout if omitted).")
+    p_p.set_defaults(func=cmd_ota_pack)
 
-    # ota-verify
-    p_ver = sub.add_parser(
-        "ota-verify",
-        help="Verify OTA payload: sha256 integrity and optional HS256 signature.",
-    )
-    p_ver.add_argument(
-        "--payload",
-        dest="payload_path",
-        required=True,
-        help="Path to payload.json.",
-    )
-    p_ver.add_argument(
-        "--hmac-key",
-        default=None,
-        help="Hex-encoded HMAC key to verify signature (optional).",
-    )
-    p_ver.set_defaults(func=cmd_ota_verify)
+    # --- ota-verify (HMAC) ---
+    p_vh = sub.add_parser("ota-verify", help="Verify HMAC signature of OTA payload JSON.")
+    p_vh.add_argument("payload", help="Path to OTA payload JSON file.")
+    p_vh.add_argument("--secret", default=None, help="HMAC secret string.")
+    p_vh.add_argument("--secret-file", default=None, help="Path to file containing HMAC secret.")
+    p_vh.set_defaults(func=cmd_ota_verify_hmac)
+
+    # --- ota-bundle ---
+    p_b = sub.add_parser("ota-bundle", help="Build assignment OTA bundle folder/zip from SessionRecord.")
+    p_b.add_argument("--session", required=True, help="Path to session.json (SessionRecord).")
+    p_b.add_argument("--out", required=True, help="Output directory root.")
+    p_b.add_argument("--name", default=None, help="Optional bundle folder name override.")
+    p_b.add_argument("--product", default="smart-guitar", help="Product name (manifest routing).")
+    p_b.add_argument("--device-model", default=None, help="Target device model.")
+    p_b.add_argument("--min-firmware", default=None, help="Target minimum firmware.")
+    p_b.add_argument("--zip", action="store_true", help="Also create bundle.zip.")
+    p_b.add_argument("--secret", default=None, help="HMAC secret for signing.")
+    p_b.add_argument("--secret-file", default=None, help="Path to file containing HMAC secret.")
+    p_b.set_defaults(func=cmd_ota_bundle)
+
+    # --- ota-verify-folder ---
+    p_vf = sub.add_parser("ota-verify-folder", help="Verify bundle folder integrity against manifest.")
+    p_vf.add_argument("bundle_dir", help="Path to bundle directory (folder).")
+    p_vf.set_defaults(func=cmd_ota_verify_folder)
+
+    # --- ota-verify-zip ---
+    p_z = sub.add_parser("ota-verify-zip", help="Verify bundle.zip by extracting and verifying.")
+    p_z.add_argument("zip_path", help="Path to bundle.zip")
+    p_z.add_argument("--secret", default=None, help="HMAC secret for signature verification.")
+    p_z.add_argument("--secret-file", default=None, help="Path to file containing HMAC secret.")
+    p_z.set_defaults(func=cmd_ota_verify_zip)
 
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point."""
+    """CLI entrypoint."""
+    if argv is None:
+        argv = sys.argv[1:]
     parser = build_parser()
     args = parser.parse_args(argv)
-    fn = getattr(args, "func", None)
-    if fn is None:
-        parser.print_help()
+    try:
+        return int(args.func(args))
+    except KeyboardInterrupt:
+        return 130
+    except FileNotFoundError as e:
+        print(f"ERROR: file not found: {e}", file=sys.stderr)
         return 2
-    return int(fn(args))
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

@@ -1,10 +1,12 @@
 """
-Coach Policy — Rules-first evaluation of practice sessions.
+Coach Policy v1 (Mode 1: rules-first deterministic).
 
-Mode 1: Deterministic, schema-governed evaluation.
-No LLM, no free-text generation. Pure signal extraction.
+Pure function: SessionRecord -> CoachEvaluation.
+All text is templated; no AI phrasing.
 """
 from __future__ import annotations
+
+from uuid import uuid4
 
 from .schemas import (
     CoachEvaluation,
@@ -15,121 +17,116 @@ from .schemas import (
     Severity,
 )
 
+
 COACH_VERSION = "coach-rules@0.1.0"
+STEP_ERROR_THRESHOLD_MS = 35.0
 
 
 def evaluate_session(session: SessionRecord) -> CoachEvaluation:
     """
-    Evaluate a practice session using deterministic rules.
+    Deterministic Mode-1 evaluation of a session.
 
-    Returns a CoachEvaluation with:
-    - findings: issues detected from timing/performance data
-    - strengths/weaknesses: derived from error patterns
-    - focus_recommendation: next practice focus area
-    - confidence: rule confidence (high for clear signals)
+    1. Analyze timing errors by step
+    2. Classify severity
+    3. Produce structured findings with evidence
+    4. Return CoachEvaluation
     """
     findings: list[CoachFinding] = []
     strengths: list[str] = []
     weaknesses: list[str] = []
 
-    # Extract timing stats from performance summary
-    perf = session.performance
-    timing_stats = perf.timing_error_ms
-    mean_error = timing_stats.mean
-    max_error = timing_stats.max
-
-    # Rule 1: Timing precision assessment
-    if mean_error < 15:
-        strengths.append("Excellent timing precision")
-    elif mean_error < 30:
-        strengths.append("Good timing consistency")
-    elif mean_error < 50:
-        weaknesses.append("Timing needs attention")
-        findings.append(
-            CoachFinding(
-                type="timing",
-                severity=Severity.secondary,
-                evidence=FindingEvidence(mean_error_ms=mean_error),
-                interpretation=f"Mean timing error of {mean_error:.1f}ms suggests room for improvement",
-            )
-        )
-    else:
-        weaknesses.append("Significant timing issues")
-        findings.append(
-            CoachFinding(
-                type="timing",
-                severity=Severity.primary,
-                evidence=FindingEvidence(mean_error_ms=mean_error),
-                interpretation=f"Mean timing error of {mean_error:.1f}ms requires focused practice",
-            )
-        )
-
-    # Rule 2: Per-step error analysis
-    if perf.error_by_step:
-        worst_steps = sorted(
-            perf.error_by_step.items(),
-            key=lambda x: x[1],
+    # Find worst step(s)
+    error_by_step = session.performance.error_by_step
+    if error_by_step:
+        sorted_steps = sorted(
+            error_by_step.items(),
+            key=lambda kv: abs(kv[1]),
             reverse=True,
-        )[:3]
+        )
+        worst_step, worst_error = sorted_steps[0]
+        worst_step_int = int(worst_step)
 
-        for step, error in worst_steps:
-            if error > 40:
+        # Primary finding: worst step
+        if abs(worst_error) >= STEP_ERROR_THRESHOLD_MS:
+            findings.append(
+                CoachFinding(
+                    type="timing",
+                    severity=Severity.primary,
+                    evidence=FindingEvidence(
+                        step=worst_step_int,
+                        mean_error_ms=worst_error,
+                    ),
+                    interpretation=f"Step {worst_step} shows timing drift ({worst_error:+.1f} ms).",
+                )
+            )
+            weaknesses.append(f"Timing on step {worst_step}")
+        else:
+            strengths.append("Consistent timing across all steps")
+
+        # Secondary findings for other steps above threshold
+        for step_str, err in sorted_steps[1:]:
+            if abs(err) >= STEP_ERROR_THRESHOLD_MS:
                 findings.append(
                     CoachFinding(
                         type="timing",
                         severity=Severity.secondary,
-                        evidence=FindingEvidence(metric="step_error", value=error),
-                        interpretation=f"Step {step} has high error ({error:.1f}ms)",
+                        evidence=FindingEvidence(
+                            step=int(step_str),
+                            mean_error_ms=err,
+                        ),
+                        interpretation=f"Step {step_str} also shows drift ({err:+.1f} ms).",
                     )
                 )
-
-    # Rule 3: Consistency check (spread between mean and max)
-    spread = max_error - mean_error
-    if spread < 20:
-        strengths.append("Consistent performance across session")
-    elif spread > 50:
-        weaknesses.append("Inconsistent timing throughout session")
-
-    # Rule 4: Note accuracy
-    if perf.notes_expected > 0:
-        accuracy = perf.notes_played / perf.notes_expected
-        if accuracy >= 0.95:
-            strengths.append("High note accuracy")
-        elif accuracy < 0.8:
-            weaknesses.append("Many missed notes")
+    else:
+        # No per-step data: use aggregate
+        if session.performance.timing_error_ms.mean >= STEP_ERROR_THRESHOLD_MS:
             findings.append(
                 CoachFinding(
-                    type="technique",
-                    severity=Severity.secondary,
-                    evidence=FindingEvidence(metric="note_accuracy", value=accuracy),
-                    interpretation=f"Only {accuracy*100:.0f}% of expected notes were played",
+                    type="timing",
+                    severity=Severity.primary,
+                    evidence=FindingEvidence(
+                        mean_error_ms=session.performance.timing_error_ms.mean,
+                    ),
+                    interpretation="Overall timing shows drift.",
                 )
             )
+            weaknesses.append("Overall timing consistency")
+        else:
+            strengths.append("Solid timing")
 
-    # Determine focus recommendation
-    if weaknesses and "timing" in " ".join(weaknesses).lower():
-        focus = FocusRecommendation(
-            concept="timing_precision",
-            reason="Focus on steady tempo with metronome at slower BPM",
+    # Dropped notes finding
+    if session.performance.notes_dropped > 0:
+        ratio = session.performance.notes_dropped / max(1, session.performance.notes_expected)
+        sev = Severity.primary if ratio > 0.1 else Severity.secondary
+        findings.append(
+            CoachFinding(
+                type="consistency",
+                severity=sev,
+                evidence=FindingEvidence(
+                    metric="notes_dropped",
+                    value=session.performance.notes_dropped,
+                ),
+                interpretation=f"{session.performance.notes_dropped} notes dropped ({ratio * 100:.0f}%).",
+            )
         )
-    elif weaknesses and "missed" in " ".join(weaknesses).lower():
+        weaknesses.append("Note consistency")
+
+    # Focus recommendation
+    if findings:
+        top = findings[0]
+        focus_concept = f"{top.type}:step_{top.evidence.step}" if top.evidence.step is not None else top.type
         focus = FocusRecommendation(
-            concept="note_accuracy",
-            reason="Practice at slower tempo to improve note hitting",
-        )
-    elif not strengths:
-        focus = FocusRecommendation(
-            concept="fundamentals",
-            reason="Build foundation with basic exercises",
+            concept=focus_concept,
+            reason=top.interpretation,
         )
     else:
         focus = FocusRecommendation(
-            concept="advancement",
-            reason="Ready to increase difficulty or add complexity",
+            concept="maintain",
+            reason="Keep practicing at current level.",
         )
 
-    # Calculate confidence based on data quality
-    confidence = 0.9 if perf.bars_played > 0 else 0.5
+    # Confidence: higher when more data
+    confidence = min(1.0, 0.5 + 0.1 * len(error_by_step))
 
     return CoachEvaluation(
         session_id=session.session_id,
@@ -140,3 +137,6 @@ def evaluate_session(session: SessionRecord) -> CoachEvaluation:
         focus_recommendation=focus,
         confidence=confidence,
     )
+
+
+__all__ = ["evaluate_session", "COACH_VERSION"]
