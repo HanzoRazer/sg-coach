@@ -63,6 +63,10 @@ def _write_normalized_diff_txt(
     """
     Writes a unified diff between normalized expected and normalized produced.
     File: <vector_dir>/_diff.txt
+
+    Header includes:
+    - vector name
+    - exact command to reproduce locally
     """
     a = _stable_json_lines(expected_norm)
     b = _stable_json_lines(produced_norm)
@@ -74,7 +78,17 @@ def _write_normalized_diff_txt(
         tofile="produced_intent.normalized.json",
         lineterm="",
     )
-    out = "\n".join(diff) + "\n"
+
+    vector_name = vector_dir.name
+    rel_path = f"fixtures/golden/groove_vectors/{vector_name}"
+
+    header = [
+        f"# Vector: {vector_name}",
+        f"# Reproduce: python -m sg_coach.groove_replay_gate_v1 {rel_path}",
+        "",
+    ]
+
+    out = "\n".join(header + list(diff)) + "\n"
     (vector_dir / "_diff.txt").write_text(out, encoding="utf-8")
 
 
