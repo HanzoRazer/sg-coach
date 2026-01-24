@@ -1,0 +1,4 @@
+{
+  "horizon_ms": 2000,
+  "description": "Follow mode with no drift correction. Lower confidence, player lags behind."
+}

@@ -1,0 +1,4 @@
+{
+  "horizon_ms": 2000,
+  "description": "Recover mode with aggressive drift correction. High panic probability, weak self-correction."
+}

@@ -1,0 +1,4 @@
+{
+  "horizon_ms": 2000,
+  "description": "Stabilize mode with soft drift correction. Player pushes ahead, good tempo confidence."
+}

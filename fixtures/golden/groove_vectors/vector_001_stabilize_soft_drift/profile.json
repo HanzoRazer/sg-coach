@@ -1,0 +1,44 @@
+{
+  "schema_id": "groove_profile",
+  "schema_version": "v1",
+  "profile_id": "gp_vector001",
+  "scope": "device_local",
+  "created_at_utc": "2026-01-20T08:00:00Z",
+  "updated_at_utc": "2026-01-24T10:00:00Z",
+  "timing_bias": {
+    "mean_offset_ms": -12.5,
+    "stddev_ms": 8.0,
+    "direction": "ahead",
+    "confidence": 0.85
+  },
+  "tempo_stability": {
+    "supported_bpm_range": [80, 140],
+    "drift_slope": 0.3,
+    "fatigue_sensitivity": 0.4,
+    "confidence": 0.9
+  },
+  "subdivision_fidelity": {
+    "supported": ["quarter", "eighth"],
+    "unstable": ["triplet_sixteenth"],
+    "swing_tolerance": 0.6,
+    "confidence": 0.8
+  },
+  "error_recovery": {
+    "mean_recovery_beats": 2.5,
+    "panic_probability": 0.15,
+    "self_correction_rate": 0.7
+  },
+  "groove_elasticity": {
+    "microtiming_flex_ms": 25.0,
+    "lock_threshold": 0.7,
+    "push_pull_balance": "push"
+  },
+  "confidence_band": {
+    "lower": 0.75,
+    "upper": 0.92
+  },
+  "evidence_window": {
+    "sessions": 15,
+    "events": 4200
+  }
+}
