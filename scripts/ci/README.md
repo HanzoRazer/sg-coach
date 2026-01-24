@@ -216,7 +216,7 @@ Ensures every `tests/golden/vector_*` directory contains the required files.
 python scripts/ci/check_sg_coach_vectors_complete.py tests/golden --debug
 ```
 
-> **Bootstrap only:** create an empty `.sg_coach_bootstrap` file at repo root to temporarily allow CI to pass with no `vector_*` fixtures; remove it once fixtures are added.
+> **Bootstrap only:** create an empty `.sg_coach_bootstrap` file at repo root to temporarily allow CI to pass with no `vector_*` fixtures; **this file must never be committed to `main`** and should be removed as soon as fixtures exist.
 
 ---
 
