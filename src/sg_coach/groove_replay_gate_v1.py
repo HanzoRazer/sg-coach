@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -40,6 +41,41 @@ def _load_json(p: Path) -> Dict[str, Any]:
 
 def _dump_json(obj: Dict[str, Any]) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def _stable_json_lines(obj: Dict[str, Any]) -> List[str]:
+    """
+    Stable, reviewer-friendly representation for diffs.
+    - sorted keys
+    - 2-space indent
+    - newline-terminated
+    """
+    txt = json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    return txt.splitlines(keepends=True)
+
+
+def _write_normalized_diff_txt(
+    *,
+    vector_dir: Path,
+    expected_norm: Dict[str, Any],
+    produced_norm: Dict[str, Any],
+) -> None:
+    """
+    Writes a unified diff between normalized expected and normalized produced.
+    File: <vector_dir>/_diff.txt
+    """
+    a = _stable_json_lines(expected_norm)
+    b = _stable_json_lines(produced_norm)
+
+    diff = difflib.unified_diff(
+        a,
+        b,
+        fromfile="expected_intent.normalized.json",
+        tofile="produced_intent.normalized.json",
+        lineterm="",
+    )
+    out = "\n".join(diff) + "\n"
+    (vector_dir / "_diff.txt").write_text(out, encoding="utf-8")
 
 
 def _deep_copy(obj: Dict[str, Any]) -> Dict[str, Any]:
@@ -172,10 +208,19 @@ def replay_vector_dir(
             except Exception as e:
                 return ReplayResult(False, str(e), [vector_dir.name])
 
+            # Write reviewer-friendly diff first (expected_norm -> produced_norm)
+            _write_normalized_diff_txt(
+                vector_dir=vector_dir,
+                expected_norm=exp_norm,
+                produced_norm=prod_norm,
+            )
+
             canon = _canonicalize_expected_intent(produced)
             exp_p.write_text(_dump_json(canon), encoding="utf-8")
+
             # Also write produced debug artifact for convenience
             (vector_dir / "_produced.intent.json").write_text(_dump_json(produced), encoding="utf-8")
+
             return ReplayResult(True, f"Updated golden: {vector_dir.name}")
 
         msg = (
