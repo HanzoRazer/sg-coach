@@ -26,6 +26,7 @@ classifiers = [
 
 dependencies = [
     "pydantic>=2.0",
+    "sg-spec @ git+https://github.com/HanzoRazer/sg-spec.git",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,9 @@ sg-coach = "sg_coach.cli:main"
 [project.urls]
 Homepage = "https://github.com/HanzoRazer/sg-coach"
 Repository = "https://github.com/HanzoRazer/sg-coach"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sg_coach"]

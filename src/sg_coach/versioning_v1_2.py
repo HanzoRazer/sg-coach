@@ -1,15 +1,3 @@
-"""
-v1.2 Versioning: Single source of truth for fixture generator version.
-
-Bump CURRENT_GENERATOR_VERSION when you intentionally change fixture generation semantics.
-"""
-from __future__ import annotations
-
-# Single source of truth for fixture generator version.
-# Bump this when you intentionally change fixture generation semantics.
-CURRENT_GENERATOR_VERSION = "1.2"
-
-
-__all__ = [
-    "CURRENT_GENERATOR_VERSION",
-]
+# sg_coach.versioning_v1_2 — re-exported from sg_spec.ai.coach.versioning_v1_2
+"""Backward compatibility stub. Use sg_spec.ai.coach.versioning_v1_2 directly."""
+from sg_spec.ai.coach.versioning_v1_2 import *

@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import ValidationError
 
-from zt_band.coach_schema import (
+from sg_coach.schemas import (
     AssignmentConstraints,
     AssignmentFocus,
     ClaveKind,
@@ -35,14 +35,15 @@ from zt_band.coach_schema import (
     TimingErrorStats,
     validate_assignment_program_exists,
     validate_coach_references_session,
-    # Legacy aliases should still work
-    Finding,
-    TimingConfig,
-    PerformanceMetrics,
-    AssignmentProgram,
-    PracticeConstraints,
-    PracticeFocus,
 )
+
+# Legacy aliases - create local for backward compat test
+Finding = CoachFinding
+TimingConfig = SessionTiming
+PerformanceMetrics = PerformanceSummary
+AssignmentProgram = ProgramRef
+PracticeConstraints = AssignmentConstraints
+PracticeFocus = AssignmentFocus
 
 
 # ============================================================================

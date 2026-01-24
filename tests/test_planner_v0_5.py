@@ -13,14 +13,8 @@ from sg_coach.assignment_v0_5 import OverrideReason
 
 def _fixtures_root() -> Path:
     """Return the path to the fixtures directory."""
-    return (
-        Path(__file__).resolve().parent.parent
-        / "src"
-        / "sg_coach"
-        / "fixtures"
-        / "golden"
-        / "vector_005"
-    )
+    import sg_spec.ai.coach.fixtures as _fx
+    return Path(_fx.__file__).parent / "golden" / "vector_005"
 
 
 def test_vector_005_structured_overrides_and_reasons():

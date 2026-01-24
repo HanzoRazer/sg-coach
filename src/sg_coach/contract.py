@@ -1,9 +1,3 @@
-"""
-Coach Contract Version Pin
-
-Bump ONLY when deterministic behavior of:
-SessionRecord -> CoachEvaluation -> PracticeAssignment
-changes in a way that invalidates golden vectors or OTA expectations.
-"""
-
-COACH_CONTRACT_VERSION: str = "v1"
+# sg_coach.contract — re-exported from sg_spec.ai.coach.contract
+"""Backward compatibility stub. Use sg_spec.ai.coach.contract directly."""
+from sg_spec.ai.coach.contract import *

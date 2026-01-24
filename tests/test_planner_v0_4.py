@@ -12,14 +12,8 @@ from sg_coach.planner_v0_4 import plan_next_v0_4, AssignmentV0_4
 
 def _fixtures_root() -> Path:
     """Return the path to the fixtures directory."""
-    return (
-        Path(__file__).resolve().parent.parent
-        / "src"
-        / "sg_coach"
-        / "fixtures"
-        / "golden"
-        / "vector_004"
-    )
+    import sg_spec.ai.coach.fixtures as _fx
+    return Path(_fx.__file__).parent / "golden" / "vector_004"
 
 
 def test_vector_004_planner_consumes_intent_and_flags():

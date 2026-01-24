@@ -13,7 +13,8 @@ from sg_coach.schemas import SessionRecord
 
 def _fixtures_root() -> Path:
     """Return the path to the fixtures directory."""
-    return Path(__file__).resolve().parent.parent / "src" / "sg_coach" / "fixtures" / "golden" / "vector_003"
+    import sg_spec.ai.coach.fixtures as _fx
+    return Path(_fx.__file__).parent / "golden" / "vector_003"
 
 
 def test_vector_003_groove_aware_eval_and_feedback():

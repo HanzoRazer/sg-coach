@@ -4,6 +4,7 @@ Tests for v1.1 vector metadata and fixture provenance stamping.
 from pathlib import Path
 import json
 
+import sg_spec.ai.coach.fixtures as _fx
 from sg_coach.golden_meta_v1_1 import META_FILENAME, read_vector_meta, ensure_vector_meta
 from sg_coach.golden_update_v1_0 import update_goldens
 from sg_coach.versioning_v1_2 import CURRENT_GENERATOR_VERSION
@@ -12,8 +13,7 @@ from sg_coach.versioning_v1_2 import CURRENT_GENERATOR_VERSION
 def test_vector_meta_created_and_provenance_stamped(tmp_path: Path):
     """Test that vector meta is created and assignment gets provenance stamp."""
     # Copy one vector into tmp workspace
-    root = Path(__file__).resolve().parents[1]
-    vec_src = root / "src" / "sg_coach" / "fixtures" / "golden" / "vector_006"
+    vec_src = Path(_fx.__file__).parent / "golden" / "vector_006"
     vec = tmp_path / "vector_006"
     vec.mkdir(parents=True, exist_ok=True)
 
