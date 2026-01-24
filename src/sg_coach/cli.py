@@ -7,6 +7,7 @@ Commands:
 - sgc ota-verify: Verify HMAC-signed OTA payload
 - sgc ota-bundle: Build OTA folder/zip bundle from SessionRecord
 - sgc ota-verify-zip: Verify bundle.zip integrity
+- sgc meta-autofill: Create missing vector_meta_v1.json without touching fixtures
 """
 from __future__ import annotations
 
@@ -28,6 +29,7 @@ from .ota_payload import (
     verify_bundle_integrity,
     verify_zip_bundle,
 )
+from .meta_autofill_v1_2 import autofill_meta
 
 
 def _read_text(path: str | Path) -> str:
@@ -236,6 +238,29 @@ def cmd_ota_verify_zip(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_meta_autofill(args: argparse.Namespace) -> int:
+    """
+    Create missing vector_meta_v1.json files without touching fixtures.
+    """
+    root = Path(args.golden_root)
+    rep = autofill_meta(root, seed=args.seed, notes=args.notes, dry_run=args.dry_run)
+
+    mode = "DRY-RUN" if args.dry_run else "WRITE"
+    print(f"[meta-autofill] {mode} scanned={rep.scanned} created={rep.created} skipped={rep.skipped}")
+
+    if rep.touched_vectors:
+        print("[meta-autofill] missing meta in:", ", ".join(rep.touched_vectors))
+
+    if args.debug:
+        from .meta_autofill_v1_2 import _vector_dirs
+        from .golden_meta_v1_1 import META_FILENAME
+        for vd in _vector_dirs(root):
+            meta = vd / META_FILENAME
+            print(f"  - {vd.name}: meta={'yes' if meta.exists() else 'no'}")
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     p = argparse.ArgumentParser(
@@ -289,6 +314,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_z.add_argument("--secret", default=None, help="HMAC secret for signature verification.")
     p_z.add_argument("--secret-file", default=None, help="Path to file containing HMAC secret.")
     p_z.set_defaults(func=cmd_ota_verify_zip)
+
+    # --- meta-autofill ---
+    p_m = sub.add_parser("meta-autofill", help="Create missing vector_meta_v1.json without touching fixtures.")
+    p_m.add_argument("golden_root", help="Path to fixtures/golden (contains vector_* dirs).")
+    p_m.add_argument("--seed", type=int, default=123, help="Default seed for new vector meta files.")
+    p_m.add_argument("--notes", default="", help="Optional notes to store in new meta files.")
+    p_m.add_argument("--dry-run", action="store_true", help="Report what would change but do not write.")
+    p_m.add_argument("--debug", action="store_true", help="Print per-vector status.")
+    p_m.set_defaults(func=cmd_meta_autofill)
 
     return p
 

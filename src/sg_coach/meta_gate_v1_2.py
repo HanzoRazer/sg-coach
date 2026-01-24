@@ -140,6 +140,7 @@ def main() -> int:
     for f in failures:
         print(f"  - [{f.code}] {f.vector}: {f.message}")
 
+    print("\n[meta-gate] Hint: re-run with --debug to see per-vector status.")
     print(
         "\n[meta-gate] Hint: to create meta + regenerate fixtures locally:\n"
         f"  python -m sg_coach.golden_update_v1_0 {root} --seed 123 --update-golden\n"

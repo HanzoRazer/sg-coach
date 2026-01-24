@@ -2,6 +2,8 @@
 
 Smart Guitar Practice Coach - Mode 1 rules-first evaluation.
 
+> **Tip**: When a gate or CLI command fails, re-run with `--debug` to print per-vector scan details (what's missing/where).
+
 ## Overview
 
 sg-coach provides deterministic evaluation of practice sessions and assignment planning for the Tritone-MIDI practice system. No LLM required for core functionality.
