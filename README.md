@@ -1,5 +1,18 @@
 # sg-coach
 
+> ⚠️ **DEPRECATED** — This repository has been superseded by [sg-agentd](https://github.com/HanzoRazer/sg-agentd).
+>
+> The coaching functionality is now integrated into sg-agentd's unified bundle pipeline:
+> - `clip.coach.json` is generated as part of the bundle output
+> - `sg_agentd/services/coach_utils.py` handles PracticeAssignment generation
+> - `sg_agentd/services/ai_coach_adapter.py` provides sg-ai integration
+>
+> **Migration:** Use sg-agentd for all new development. This repo is archived for historical reference only.
+>
+> **Superseded:** 2026-02-02
+
+---
+
 Smart Guitar Practice Coach - Mode 1 rules-first evaluation.
 
 > **Tip**: When a gate or CLI command fails, re-run with `--debug` to print per-vector scan details (what's missing/where).
