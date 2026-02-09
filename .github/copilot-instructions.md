@@ -2,167 +2,146 @@
 
 ## Project Identity
 
-**Package**: `sg-coach` — Smart Guitar Practice Coach  
+**Package**: `sg-coach` v1.2.0 — Smart Guitar Practice Coach  
 **Role**: Mode 1 deterministic evaluation spine + Groove Layer contracts.  
 **No LLM required** — all logic is rules-based and templated.
 
----
-
 ## Architecture
 
-### Three-Layer Coaching Contract
+### Coaching Pipeline
 
 ```
 SessionRecord (facts) → CoachEvaluation (interpretation) → PracticeAssignment (intent)
 ```
 
-| Layer | Owner | Description |
-|-------|-------|-------------|
-| `SessionRecord` | Runtime (zt-band) | Immutable facts — what happened |
-| `CoachEvaluation` | `coach_policy.py` | Deterministic findings — what it means |
-| `PracticeAssignment` | `planner_v0_6.py` | Adaptive intent — what's next |
-
-### Groove Layer Contract (Profile → Intent → Control)
+### Groove Layer Pipeline
 
 ```
 GrooveProfileV1 (persistent) → GrooveControlIntentV1 (ephemeral) → MidiControlPlan / ArrangerControlPlan
 ```
 
-- **Profile**: Rhythmic personality traits (HOW player grooves)
-- **Intent**: Prescriptive control output (WHAT system does next), bounded by `horizon_ms`
-- **MidiControlPlan**: zt-band adapter output (CC messages, clock mode, humanize settings)
-- **ArrangerControlPlan**: Style/density/energy for arranger engine
+## Source of Truth & Stub Pattern
 
----
+**All schemas and coach logic live in `sg-spec`**. This repo contains only 2 logic files; the other 28 modules are 3-line re-export stubs. **Never add logic to stubs.**
 
-## Source of Truth
-
-**Schemas live in `sg-spec`** — this repo re-exports via thin stubs:
 ```python
-# src/sg_coach/schemas.py, coach_policy.py, planner_v0_6.py, etc.
-from sg_spec.ai.coach.schemas import *  # Re-export
+# Exact stub pattern (e.g., src/sg_coach/schemas.py):
+# sg_coach.schemas — re-exported from sg_spec.ai.coach.schemas
+"""Backward compatibility stub. Use sg_spec.ai.coach.schemas directly."""
+from sg_spec.ai.coach.schemas import *
 ```
-**Never add logic to stub files** — they exist only for backward compatibility.
 
-**JSON Schema contracts** (v1-locked, immutable):
-- `contracts/groove_profile_v1.schema.json` — SHA256 in CHANGELOG
-- `contracts/groove_control_intent_v1.schema.json` — SHA256 in CHANGELOG
-
----
-
-## Key Modules
+**Logic modules** (the only files with real code in this repo):
 
 | Module | Purpose |
 |--------|---------|
-| `groove_intent_engine_v1.py` | Profile → Intent mapper (deterministic, rule-based) |
+| `groove_intent_engine_v1.py` | Profile → Intent mapper (`ENGINE_IDENTITY = "v1+salt:v1"`) |
 | `groove_replay_gate_v1.py` | Golden vector replay with unified diff output |
-| `coach_policy.py` | Session → Evaluation (Mode 1 rules) — stub |
-| `planner_v0_6.py` | History-aware planner with anti-oscillation — stub |
-| `ota_payload.py` | OTA bundle building (manifest, HMAC, zip) — stub |
 
----
+## Critical Invariants
+
+1. **Determinism**: Same inputs → byte-identical outputs. No RNG anywhere — uses Knuth hash, hardcoded fallback timestamp `datetime(2026, 1, 24, 10, 30, 0, tzinfo=timezone.utc)`, stable intent IDs (`gci_` + truncated SHA256)
+2. **v1-locked immutability**: Never modify `contracts/*.schema.json` — create v2 instead
+3. **Changelog required**: Every schema/golden change needs `contracts/CHANGELOG.md` entry
+4. **ENGINE_IDENTITY**: `v1+salt:v1` — bump salt only for intentional mapping changes
 
 ## Developer Workflow
 
+### Version Gap Warning
+
+Local dev uses Python 3.14, CI uses 3.11. Known friction points:
+- Type syntax: `list[str]` works in 3.14, may need `from __future__ import annotations` for 3.11
+- Match statements: Full pattern matching in 3.14, limited in 3.11
+- Exception groups: 3.11+ only
+
+Run `python3.11 -m pytest` locally before pushing to catch CI failures early.
+
 ```bash
-pip install -e ".[dev]"     # Editable install (requires sg-spec)
-pytest                       # ~86 tests
+pip install -e ".[dev]"     # Editable install (requires sg-spec first)
+pytest                       # Full suite (25+ test files)
 pytest --cov=sg_coach        # With coverage
 ```
 
-### Debugging with `--debug`
+**OTA bundle CLI**: see `sgc --help` or `README.md` § OTA Commands.
 
-When gates or CLI commands fail, use `--debug` for per-vector scan details:
+**Pre-PR gates** (run locally):
 ```bash
-python -m sg_coach.groove_replay_gate_v1 fixtures/golden/groove_vectors --debug
+python scripts/ci/check_groove_replay_determinism.py
+python scripts/ci/check_contracts_governance.py
 ```
 
-### Replay Gates
-
+**Replay gate commands:**
 ```bash
-# Single vector
-python -m sg_coach.groove_replay_gate_v1 fixtures/golden/groove_vectors/vector_001_stabilize_soft_drift
-
-# All vectors (13 total)
-python -m sg_coach.groove_replay_gate_v1 fixtures/golden/groove_vectors
-
-# Update goldens (requires changelog bump)
+python -m sg_coach.groove_replay_gate_v1 fixtures/golden/groove_vectors           # All 13 vectors
+python -m sg_coach.groove_replay_gate_v1 fixtures/golden/groove_vectors --debug    # Debug failures
 python -m sg_coach.groove_replay_gate_v1 fixtures/golden/groove_vectors --update-golden --bump-changelog "reason"
 ```
 
----
-
 ## Golden Vector Pattern
 
-Groove vectors in `fixtures/golden/groove_vectors/vector_*/`:
+**Groove vectors** in `fixtures/golden/groove_vectors/vector_NNN_<scenario>/`:
 ```
 vector_001_stabilize_soft_drift/
 ├── profile.json          # Input: GrooveProfileV1
-├── expected_intent.json  # Expected: GrooveControlIntentV1
-└── vector_meta_v1.json   # Provenance + ENGINE_IDENTITY
+├── expected_intent.json  # Expected output (intent_id → "gci_IGNORE", generated_at_utc → "IGNORE")
+└── meta.json             # ENGINE_IDENTITY + provenance
 ```
 
-**Replay gate enforces byte-identical output** (after JSON normalization with sorted keys).
+**Coach vectors** in `tests/golden/` (4 files: `input.json`, `expected.json`, `config.json`, `meta.json`).
 
----
+On mismatch the gate writes `actual_intent.json` + `diff.txt` into the vector dir (auto-cleaned on pass).
 
 ## CI Gates (`scripts/ci/`)
 
 | Gate | Purpose |
 |------|---------|
-| `check_contracts_governance.py` | SHA256 validation of locked schemas |
+| `check_contracts_governance.py` | SHA256 validation of locked schemas + CHANGELOG enforcement |
 | `check_groove_vectors_complete.py` | All vectors have required files |
-| `check_groove_replay_determinism.py` | Replay produces identical output |
+| `check_groove_replay_determinism.py` | Byte-identical replay output |
 | `check_sg_coach_vectors_complete.py` | Coach vector completeness |
-| `check_sg_coach_replay_determinism.py` | Coach replay determinism |
+| `check_sg_coach_replay_determinism.py` | Double-run determinism (runs twice, bitwise-compares stdout/stderr/report.json) |
 
-**Bootstrap sentinel**: `.sg_coach_bootstrap` bypasses gates during setup (forbidden on main/master).
+Exit codes: 0 = pass, 1 = violation, 2 = execution error. Bootstrap sentinel `.sg_coach_bootstrap` bypasses gates during setup (forbidden on main/master).
 
----
+## Testing Conventions
+
+- **Import from stubs** in tests: `from sg_coach.planner_v0_6 import plan_next_v0_6` (not from `sg_spec` directly)
+- **Shared fixtures** in `tests/sgc_fixtures.py` — `make_session_record(bpm=120.0, error_by_step={...})`
+- **Test naming**: `test_<module>_<scenario>.py` — one module per file
+- **No conftest.py** — simple fixtures via `sgc_fixtures.py`
+
+## Planner Versioning
+
+**Current canonical: `assignment_v0_6.py` / `plan_next_v0_6`**. Legacy stubs (`v0_4`, `v0_5`) retained for rollback compatibility through 2026-Q2. Later versions layer features on v0.6 (not replacements): v0.7 adds commit state reducer, v0.8 adds SQLite store + replay gate, v0.9 adds replay-all, v1.0+ adds fixture generators and meta gates.
+
+## OTA & Key Management
+
+HMAC signing key management is **currently undefined** — tests use hardcoded secrets. No `$SG_OTA_KEY_PATH` env var or key rotation script exists yet. If you need signed OTA bundles in production, this needs design work first.
 
 ## Conventions
 
-- **Imports**: Use `from sg_coach.xxx import ...` (stubs re-export from sg-spec)
+- **Build**: Hatchling (not setuptools), Python ≥3.10, wheel packages only `src/sg_coach`
 - **Pydantic**: `model_config = ConfigDict(extra="forbid")` everywhere
-- **Versioned modules**: `planner_v0_6.py` = stable API; create v0.7 for breaking changes
-- **Contract hashes**: `sha256:<hex>` format, validated in CI
-- **Extensions field**: Only forward-growth space in v1-locked schemas
-- **ENGINE_IDENTITY**: `v1+salt:v1` — bump salt only for intentional mapping changes
-
----
-
-## Critical Invariants
-
-1. **Determinism**: Same inputs → byte-identical outputs (essential for OTA)
-2. **v1-locked immutability**: Never modify locked schemas; create v2 instead
-3. **Changelog required**: Every schema change needs entry in `contracts/CHANGELOG.md`
-4. **Anti-oscillation**: Planner enters commit windows on flip-flop detection
-
----
+- **Contract hashes**: `sha256:<hex>` format in `contracts/CHANGELOG.md`
+- **Module runner**: `python -m sg_coach` invokes CLI via `__main__.py`
+- **Public API**: `__init__.py` re-exports ~80 symbols — this is the API boundary
 
 ## Integration Points
 
-**Consumed by zt-band** (`string_master_v.4.0`):
+```
+sg-spec (schema source of truth) → sg-coach (contracts + engine) → zt-band (MIDI adapters)
+```
+
 ```python
+# Consumed by zt-band:
 from sg_coach.groove_intent_engine_v1 import generate_groove_control_intent_v1
-from zt_band.adapters import build_midi_control_plan, build_arranger_control_plan
-
 intent = generate_groove_control_intent_v1(profile)
-midi_plan = build_midi_control_plan(intent)        # CC messages, clock mode
-arranger_plan = build_arranger_control_plan(intent) # style, density, energy
 ```
-
-**Schema source** (`sg-spec`):
-```python
-from sg_spec.schemas.groove_layer import GrooveProfileV1, GrooveControlIntentV1
-```
-
----
 
 ## Adding New Contracts
 
 1. Create JSON Schema in `contracts/<name>_v1.schema.json`
-2. Add SHA256 entry to `contracts/CHANGELOG.md` with status `v1-locked`
+2. Add SHA256 + entry in `contracts/CHANGELOG.md` with `v1-locked` status
 3. Create matching Pydantic model in `sg-spec`
 4. Add golden vectors in `fixtures/golden/` if mapper exists
 5. Wire CI gates for governance and replay
