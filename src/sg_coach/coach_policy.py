@@ -8,16 +8,18 @@ Evaluator Pipeline:
     SessionRecord + optional event data
         → timing evaluators (built-in + timing_evaluator)
         → harmony evaluators (diminished_evaluator)
+        → pitch evaluators (pitch_evaluator)
         → technique evaluators (future)
     → CoachEvaluation
 
 Layer 1 Coaching Pipelines:
     - diminished_evaluator: DIM_ORBIT_VIOLATION
     - timing_evaluator: TIMING_GRID_DEVIATION
+    - pitch_evaluator: WRONG_NOTE / PITCH_DEVIATION
 """
 from __future__ import annotations
 
-from typing import Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from .schemas import (
     CoachEvaluation,
@@ -30,10 +32,12 @@ from .schemas import (
 from .exercise_classifier import (
     is_diminished_exercise,
     is_timing_grid_exercise,
+    is_pitch_exercise,
     extract_key_from_program,
 )
 from .diminished_evaluator import build_context, evaluate_notes
 from .timing_evaluator import evaluate_timing_grid
+from .pitch_evaluator import evaluate_pitch_accuracy
 
 COACH_VERSION = "coach-rules@0.3.0"
 
@@ -127,12 +131,58 @@ def _evaluate_timing_grid(
     return [finding] if finding else []
 
 
+def _evaluate_pitch_accuracy(
+    session: SessionRecord,
+    expected_pitch_events: Optional[Sequence[Mapping[str, Any]]] = None,
+    performed_pitch_events: Optional[Sequence[Mapping[str, Any]]] = None,
+    cents_threshold: float = 25.0,
+) -> list[CoachFinding]:
+    """
+    Evaluate pitch accuracy for pitch-gated exercises.
+
+    Parameters
+    ----------
+    session:
+        The session record containing program_ref.
+    expected_pitch_events:
+        Sequence of expected note events with note/midi/pitch_hz fields.
+    performed_pitch_events:
+        Sequence of performed note events with note/midi/pitch_hz fields.
+    cents_threshold:
+        Pitch deviation threshold in cents. Default 25.
+
+    Returns
+    -------
+    List of CoachFindings (empty if clean or not applicable).
+    """
+    # Gate: only run for pitch exercises
+    if not is_pitch_exercise(session.program_ref):
+        return []
+
+    # Require both expected and performed data
+    if expected_pitch_events is None or performed_pitch_events is None:
+        return []
+
+    if len(expected_pitch_events) == 0 or len(performed_pitch_events) == 0:
+        return []
+
+    # Run pitch accuracy evaluation
+    return evaluate_pitch_accuracy(
+        expected_notes=expected_pitch_events,
+        performed_notes=performed_pitch_events,
+        cents_threshold=cents_threshold,
+    )
+
+
 def evaluate_session(
     session: SessionRecord,
     performed_notes: Optional[Sequence[int]] = None,
     expected_times: Optional[Sequence[float]] = None,
     performed_times: Optional[Sequence[float]] = None,
     timing_threshold_ms: float = 40.0,
+    expected_pitch_events: Optional[Sequence[Mapping[str, Any]]] = None,
+    performed_pitch_events: Optional[Sequence[Mapping[str, Any]]] = None,
+    pitch_cents_threshold: float = 25.0,
 ) -> CoachEvaluation:
     """
     Evaluate a practice session using deterministic rules.
@@ -150,11 +200,19 @@ def evaluate_session(
         Optional sequence of performed event times in seconds for timing evaluation.
     timing_threshold_ms:
         Deviation threshold for timing evaluation. Default 40ms.
+    expected_pitch_events:
+        Optional sequence of expected note events for pitch evaluation.
+        Each event may have: note, midi, pitch_hz, index, time_sec.
+    performed_pitch_events:
+        Optional sequence of performed note events for pitch evaluation.
+        Same structure as expected_pitch_events.
+    pitch_cents_threshold:
+        Pitch deviation threshold in cents. Default 25.
 
     Returns
     -------
     CoachEvaluation with:
-    - findings: issues detected from timing/performance/harmony data
+    - findings: issues detected from timing/performance/harmony/pitch data
     - strengths/weaknesses: derived from error patterns
     - focus_recommendation: next practice focus area
     - confidence: rule confidence (high for clear signals)
@@ -166,7 +224,9 @@ def evaluate_session(
     2. Timing evaluators:
        - timing_evaluator: TIMING_GRID_DEVIATION
        - built-in timing rules (aggregate stats)
-    3. Technique evaluators (future)
+    3. Pitch evaluators:
+       - pitch_evaluator: WRONG_NOTE / PITCH_DEVIATION
+    4. Technique evaluators (future)
     """
     findings: list[CoachFinding] = []
     strengths: list[str] = []
@@ -180,6 +240,11 @@ def evaluate_session(
     # Timing: grid deviation evaluation
     findings.extend(_evaluate_timing_grid(
         session, expected_times, performed_times, timing_threshold_ms
+    ))
+
+    # Pitch: note identity and pitch deviation evaluation
+    findings.extend(_evaluate_pitch_accuracy(
+        session, expected_pitch_events, performed_pitch_events, pitch_cents_threshold
     ))
 
     # Extract timing stats from performance summary

@@ -41,6 +41,15 @@ TIMING_GRID_PATTERNS = [
     "grid_timing",
 ]
 
+# Program name patterns that indicate pitch accuracy exercises
+PITCH_PATTERNS = [
+    "pitch_accuracy",
+    "pitch_sequence",
+    "pitch_layer1b",
+    "note_accuracy",
+    "single_note_pitch",
+]
+
 
 def classify_exercise(program_ref: ProgramRef) -> ExerciseCategory:
     """
@@ -89,6 +98,19 @@ def is_diminished_exercise(program_ref: ProgramRef) -> bool:
     return classify_exercise(program_ref) == ExerciseCategory.DIMINISHED_NAVIGATION
 
 
+def is_pitch_exercise(program_ref: ProgramRef) -> bool:
+    """
+    Check if an exercise is a pitch accuracy exercise.
+
+    This is the gate for running the pitch evaluator.
+    """
+    name_lower = program_ref.name.lower()
+    for pattern in PITCH_PATTERNS:
+        if pattern in name_lower:
+            return True
+    return False
+
+
 def extract_key_from_program(program_ref: ProgramRef) -> Optional[str]:
     """
     Extract the key from a program name if present.
@@ -115,7 +137,9 @@ __all__ = [
     "classify_exercise",
     "is_diminished_exercise",
     "is_timing_grid_exercise",
+    "is_pitch_exercise",
     "extract_key_from_program",
     "DIMINISHED_PATTERNS",
     "TIMING_GRID_PATTERNS",
+    "PITCH_PATTERNS",
 ]

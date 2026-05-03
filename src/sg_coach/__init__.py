@@ -13,6 +13,7 @@ Usage:
 Layer 1 Coaching Pipelines:
     - diminished_evaluator: DIM_ORBIT_VIOLATION
     - timing_evaluator: TIMING_GRID_DEVIATION
+    - pitch_evaluator: WRONG_NOTE / PITCH_DEVIATION
 """
 
 # Core policy
@@ -39,7 +40,15 @@ from .exercise_classifier import (
     classify_exercise,
     is_diminished_exercise,
     is_timing_grid_exercise,
+    is_pitch_exercise,
     extract_key_from_program,
+)
+from .pitch_evaluator import (
+    ExpectedNote,
+    PerformedNote,
+    PitchComparisonResult,
+    evaluate_pitch_accuracy,
+    DEFAULT_CENTS_THRESHOLD,
 )
 
 # Re-export schemas for convenience
@@ -105,7 +114,14 @@ __all__ = [
     "classify_exercise",
     "is_diminished_exercise",
     "is_timing_grid_exercise",
+    "is_pitch_exercise",
     "extract_key_from_program",
+    # Pitch evaluator
+    "ExpectedNote",
+    "PerformedNote",
+    "PitchComparisonResult",
+    "evaluate_pitch_accuracy",
+    "DEFAULT_CENTS_THRESHOLD",
     # Enums
     "ProgramType",
     "Severity",
