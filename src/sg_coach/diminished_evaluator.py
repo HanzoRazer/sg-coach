@@ -25,7 +25,15 @@ from shared.zone_tritone import (
 )
 from sg_spec.schemas.adaptive_feedback import DiagnosisCode
 
-from .schemas import CoachFinding, FindingEvidence, Severity
+from .schemas import (
+    CoachFinding,
+    FindingEvidence,
+    Severity,
+    FeedbackDomain,
+    FeedbackRenderHint,
+    FeedbackActionType,
+    SuggestedAction,
+)
 
 
 @dataclass
@@ -65,17 +73,55 @@ class DimOrbitEvaluation:
         """Convert to CoachFinding if there's a violation."""
         if self.is_clean:
             return None
+
+        violation_notes = [v.note for v in self.violations]
+        message = self.message or render_violation_message(
+            DimOrbitContext(key=self.key, dim_notes=self.dim_notes),
+            self.violations,
+        )
+
         return CoachFinding(
+            # Legacy fields (backward compatibility)
             type="harmony",
             severity=Severity.secondary,
+            interpretation=message,
+            # Governance fields (Phase 5.3)
+            code=DiagnosisCode.DIM_ORBIT_VIOLATION,
+            domain=FeedbackDomain.harmony,
+            title="Diminished orbit violation",
+            message=message,
             evidence=FindingEvidence(
                 metric="dim_orbit_violations",
                 value=float(len(self.violations)),
+                key=self.key,
+                expected_set=list(self.dim_notes),
+                performed_set=violation_notes,
+                aggregate_stats={
+                    "notes_evaluated": self.notes_evaluated,
+                    "notes_in_orbit": self.notes_in_orbit,
+                    "violation_count": len(self.violations),
+                },
             ),
-            interpretation=self.message or render_violation_message(
-                DimOrbitContext(key=self.key, dim_notes=self.dim_notes),
-                self.violations,
-            ),
+            render_hint=FeedbackRenderHint.summary,
+            suggested_actions=[
+                SuggestedAction(
+                    action_type=FeedbackActionType.isolate,
+                    label="Isolate problem notes",
+                    rationale="Practice the specific notes that fell outside the orbit",
+                ),
+                SuggestedAction(
+                    action_type=FeedbackActionType.review_reference,
+                    label="Review diminished orbit",
+                    rationale=f"In key of {self.key}, the orbit is: {', '.join(self.dim_notes)}",
+                ),
+                SuggestedAction(
+                    action_type=FeedbackActionType.assign_drill,
+                    label="Orbit awareness drill",
+                    rationale="Practice chromatic approach patterns using orbit notes",
+                ),
+            ],
+            confidence=1.0,
+            source_evaluator="diminished_evaluator",
         )
 
 

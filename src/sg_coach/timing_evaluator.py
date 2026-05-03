@@ -19,7 +19,15 @@ from typing import List, Literal, Optional, Sequence
 
 from sg_spec.schemas.adaptive_feedback import DiagnosisCode
 
-from .schemas import CoachFinding, FindingEvidence, Severity
+from .schemas import (
+    CoachFinding,
+    FindingEvidence,
+    Severity,
+    FeedbackDomain,
+    FeedbackRenderHint,
+    FeedbackActionType,
+    SuggestedAction,
+)
 
 
 DEFAULT_THRESHOLD_MS = 40.0
@@ -85,15 +93,54 @@ class TimingGridEvaluation:
 
         # Find worst deviation for evidence
         worst = max(self.deviations, key=lambda d: d.abs_offset_ms)
+        message = self.message or render_timing_message(self, worst)
 
         return CoachFinding(
+            # Legacy fields (backward compatibility)
             type="timing",
             severity=severity,
+            interpretation=message,
+            # Governance fields (Phase 5.3)
+            code=DiagnosisCode.TIMING_GRID_DEVIATION,
+            domain=FeedbackDomain.timing,
+            title="Timing grid deviation",
+            message=message,
             evidence=FindingEvidence(
                 metric="timing_grid_deviation",
                 value=self.max_abs_error_ms,
+                unit="ms",
+                threshold=self.threshold_ms,
+                offset_ms=worst.event.offset_ms,
+                direction=worst.event.direction,
+                index=worst.event.index,
+                aggregate_stats={
+                    "average_abs_error_ms": self.average_abs_error_ms,
+                    "max_abs_error_ms": self.max_abs_error_ms,
+                    "events_evaluated": self.events_evaluated,
+                    "deviation_count": len(self.deviations),
+                    "tempo_bpm": self.tempo_bpm,
+                },
             ),
-            interpretation=self.message or render_timing_message(self, worst),
+            render_hint=FeedbackRenderHint.timeline,
+            suggested_actions=[
+                SuggestedAction(
+                    action_type=FeedbackActionType.repeat,
+                    label="Repeat section",
+                    rationale="Practice the same passage again with focus on timing",
+                ),
+                SuggestedAction(
+                    action_type=FeedbackActionType.slow_down,
+                    label="Reduce tempo",
+                    rationale="Practice at a slower tempo to lock in the grid",
+                ),
+                SuggestedAction(
+                    action_type=FeedbackActionType.retry_section,
+                    label="Retry problem area",
+                    rationale=f"Focus on note {worst.event.index + 1} which was {abs(worst.event.offset_ms):.0f}ms {worst.event.direction}",
+                ),
+            ],
+            confidence=1.0,
+            source_evaluator="timing_evaluator",
         )
 
 
