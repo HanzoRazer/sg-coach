@@ -50,6 +50,13 @@ from .pitch_evaluator import (
     evaluate_pitch_accuracy,
     DEFAULT_CENTS_THRESHOLD,
 )
+from .session_normalizer import (
+    normalize_session,
+    ensure_normalized_session,
+    has_timing_input,
+    has_pitch_input,
+    has_harmony_input,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -65,6 +72,11 @@ from .schemas import (
     DiagnosisCode,
     # Shared
     ProgramRef,
+    # Normalized evaluation inputs (Sprint 3)
+    HarmonyEvaluationInput,
+    TimingEvaluationInput,
+    PitchEvaluationInput,
+    NormalizedSessionData,
     # Session layer
     SessionTiming,
     TimingErrorStats,
@@ -122,6 +134,17 @@ __all__ = [
     "PitchComparisonResult",
     "evaluate_pitch_accuracy",
     "DEFAULT_CENTS_THRESHOLD",
+    # Session normalizer (Sprint 3)
+    "normalize_session",
+    "ensure_normalized_session",
+    "has_timing_input",
+    "has_pitch_input",
+    "has_harmony_input",
+    # Normalized evaluation inputs (Sprint 3)
+    "HarmonyEvaluationInput",
+    "TimingEvaluationInput",
+    "PitchEvaluationInput",
+    "NormalizedSessionData",
     # Enums
     "ProgramType",
     "Severity",

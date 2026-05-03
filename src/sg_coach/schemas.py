@@ -27,6 +27,11 @@ from sg_spec.schemas.coach_schemas import (
     severity_to_feedback_severity,
     # Shared
     ProgramRef,
+    # Normalized evaluation inputs (Sprint 3)
+    HarmonyEvaluationInput,
+    TimingEvaluationInput,
+    PitchEvaluationInput,
+    NormalizedSessionData,
     # Session layer
     SessionTiming,
     TimingErrorStats,
@@ -78,6 +83,11 @@ __all__ = [
     "severity_to_feedback_severity",
     # Shared
     "ProgramRef",
+    # Normalized evaluation inputs (Sprint 3)
+    "HarmonyEvaluationInput",
+    "TimingEvaluationInput",
+    "PitchEvaluationInput",
+    "NormalizedSessionData",
     # Session layer
     "SessionTiming",
     "TimingErrorStats",

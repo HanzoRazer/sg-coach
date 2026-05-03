@@ -5,9 +5,9 @@ Mode 1: Deterministic, schema-governed evaluation.
 No LLM, no free-text generation. Pure signal extraction.
 
 Evaluator Pipeline:
-    SessionRecord + optional event data
-        → timing evaluators (built-in + timing_evaluator)
+    SessionRecord (with normalized inputs)
         → harmony evaluators (diminished_evaluator)
+        → timing evaluators (timing_evaluator)
         → pitch evaluators (pitch_evaluator)
         → technique evaluators (future)
     → CoachEvaluation
@@ -16,6 +16,9 @@ Layer 1 Coaching Pipelines:
     - diminished_evaluator: DIM_ORBIT_VIOLATION
     - timing_evaluator: TIMING_GRID_DEVIATION
     - pitch_evaluator: WRONG_NOTE / PITCH_DEVIATION
+
+Sprint 3: Evaluators read from session.normalized.
+Legacy params are preserved for backward compatibility.
 """
 from __future__ import annotations
 
@@ -29,6 +32,7 @@ from .schemas import (
     SessionRecord,
     Severity,
 )
+from .session_normalizer import normalize_session
 from .exercise_classifier import (
     is_diminished_exercise,
     is_timing_grid_exercise,
@@ -39,23 +43,22 @@ from .diminished_evaluator import build_context, evaluate_notes
 from .timing_evaluator import evaluate_timing_grid
 from .pitch_evaluator import evaluate_pitch_accuracy
 
-COACH_VERSION = "coach-rules@0.3.0"
+COACH_VERSION = "coach-rules@0.4.0"
 
 
-def _evaluate_diminished_harmony(
-    session: SessionRecord,
-    performed_notes: Optional[Sequence[int]] = None,
-) -> list[CoachFinding]:
+def _evaluate_diminished_harmony(session: SessionRecord) -> list[CoachFinding]:
     """
     Evaluate diminished orbit compliance for diminished-navigation exercises.
+
+    Reads from session.normalized.harmony:
+    - key: Music key for orbit computation
+    - performed_notes: Pitch classes (0-11) that were performed
+    - expected_orbit: Optional explicit orbit (computed from key if missing)
 
     Parameters
     ----------
     session:
-        The session record containing program_ref.
-    performed_notes:
-        Optional sequence of pitch classes (0-11) that were performed.
-        Required for actual evaluation; if None, returns empty list.
+        SessionRecord with normalized.harmony input.
 
     Returns
     -------
@@ -65,43 +68,41 @@ def _evaluate_diminished_harmony(
     if not is_diminished_exercise(session.program_ref):
         return []
 
-    # Require note data for evaluation
-    if performed_notes is None:
+    # Require normalized harmony input
+    if session.normalized is None or session.normalized.harmony is None:
         return []
 
-    # Extract key from program name
-    key = extract_key_from_program(session.program_ref)
+    harmony = session.normalized.harmony
+    if not harmony.performed_notes:
+        return []
+
+    # Get key: prefer harmony.key, fallback to session.key, then extract from program
+    key = harmony.key or session.key or extract_key_from_program(session.program_ref)
     if key is None:
         return []
 
     # Run diminished orbit evaluation
     context = build_context(key)
-    result = evaluate_notes(context, performed_notes)
+    result = evaluate_notes(context, harmony.performed_notes)
 
     # Convert to CoachFinding if violation found
     finding = result.to_coach_finding()
     return [finding] if finding else []
 
 
-def _evaluate_timing_grid(
-    session: SessionRecord,
-    expected_times: Optional[Sequence[float]] = None,
-    performed_times: Optional[Sequence[float]] = None,
-    threshold_ms: float = 40.0,
-) -> list[CoachFinding]:
+def _evaluate_timing_grid(session: SessionRecord) -> list[CoachFinding]:
     """
     Evaluate timing grid compliance for timing-grid exercises.
+
+    Reads from session.normalized.timing:
+    - expected_times: Expected event times in seconds
+    - performed_times: Performed event times in seconds
+    - threshold_ms: Deviation threshold in milliseconds
 
     Parameters
     ----------
     session:
-        The session record containing program_ref and timing.
-    expected_times:
-        Sequence of expected event times in seconds.
-    performed_times:
-        Sequence of performed event times in seconds.
-    threshold_ms:
-        Deviation threshold in milliseconds. Default 40ms.
+        SessionRecord with normalized.timing input.
 
     Returns
     -------
@@ -111,19 +112,20 @@ def _evaluate_timing_grid(
     if not is_timing_grid_exercise(session.program_ref):
         return []
 
-    # Require timing data for evaluation
-    if expected_times is None or performed_times is None:
+    # Require normalized timing input
+    if session.normalized is None or session.normalized.timing is None:
         return []
 
-    if len(expected_times) == 0 or len(performed_times) == 0:
+    timing = session.normalized.timing
+    if len(timing.expected_times) == 0 or len(timing.performed_times) == 0:
         return []
 
     # Run timing grid evaluation
     result = evaluate_timing_grid(
         tempo_bpm=session.timing.bpm,
-        expected_times=expected_times,
-        performed_times=performed_times,
-        threshold_ms=threshold_ms,
+        expected_times=timing.expected_times,
+        performed_times=timing.performed_times,
+        threshold_ms=timing.threshold_ms,
     )
 
     # Convert to CoachFinding if deviation found
@@ -131,25 +133,19 @@ def _evaluate_timing_grid(
     return [finding] if finding else []
 
 
-def _evaluate_pitch_accuracy(
-    session: SessionRecord,
-    expected_pitch_events: Optional[Sequence[Mapping[str, Any]]] = None,
-    performed_pitch_events: Optional[Sequence[Mapping[str, Any]]] = None,
-    cents_threshold: float = 25.0,
-) -> list[CoachFinding]:
+def _evaluate_pitch_accuracy(session: SessionRecord) -> list[CoachFinding]:
     """
     Evaluate pitch accuracy for pitch-gated exercises.
+
+    Reads from session.normalized.pitch:
+    - expected_pitch_events: Expected note events with note/midi/pitch_hz fields
+    - performed_pitch_events: Performed note events
+    - cents_threshold: Pitch deviation threshold in cents
 
     Parameters
     ----------
     session:
-        The session record containing program_ref.
-    expected_pitch_events:
-        Sequence of expected note events with note/midi/pitch_hz fields.
-    performed_pitch_events:
-        Sequence of performed note events with note/midi/pitch_hz fields.
-    cents_threshold:
-        Pitch deviation threshold in cents. Default 25.
+        SessionRecord with normalized.pitch input.
 
     Returns
     -------
@@ -159,18 +155,19 @@ def _evaluate_pitch_accuracy(
     if not is_pitch_exercise(session.program_ref):
         return []
 
-    # Require both expected and performed data
-    if expected_pitch_events is None or performed_pitch_events is None:
+    # Require normalized pitch input
+    if session.normalized is None or session.normalized.pitch is None:
         return []
 
-    if len(expected_pitch_events) == 0 or len(performed_pitch_events) == 0:
+    pitch = session.normalized.pitch
+    if len(pitch.expected_pitch_events) == 0 or len(pitch.performed_pitch_events) == 0:
         return []
 
     # Run pitch accuracy evaluation
     return evaluate_pitch_accuracy(
-        expected_notes=expected_pitch_events,
-        performed_notes=performed_pitch_events,
-        cents_threshold=cents_threshold,
+        expected_notes=pitch.expected_pitch_events,
+        performed_notes=pitch.performed_pitch_events,
+        cents_threshold=pitch.cents_threshold,
     )
 
 
@@ -187,27 +184,38 @@ def evaluate_session(
     """
     Evaluate a practice session using deterministic rules.
 
+    Preferred usage (Sprint 3):
+        evaluate_session(session_with_normalized_inputs)
+
+    Legacy usage (backward compatible):
+        evaluate_session(session, expected_times=..., performed_times=...)
+
     Parameters
     ----------
     session:
         SessionRecord containing timing/performance data.
+        Prefer using session.normalized for evaluator inputs.
     performed_notes:
-        Optional sequence of pitch classes (0-11) for harmony evaluation.
-        Required for diminished orbit checks.
+        [DEPRECATED] Pitch classes (0-11) for harmony evaluation.
+        Prefer session.normalized.harmony.performed_notes.
     expected_times:
-        Optional sequence of expected event times in seconds for timing evaluation.
+        [DEPRECATED] Expected event times in seconds for timing evaluation.
+        Prefer session.normalized.timing.expected_times.
     performed_times:
-        Optional sequence of performed event times in seconds for timing evaluation.
+        [DEPRECATED] Performed event times in seconds for timing evaluation.
+        Prefer session.normalized.timing.performed_times.
     timing_threshold_ms:
-        Deviation threshold for timing evaluation. Default 40ms.
+        [DEPRECATED] Deviation threshold for timing evaluation. Default 40ms.
+        Prefer session.normalized.timing.threshold_ms.
     expected_pitch_events:
-        Optional sequence of expected note events for pitch evaluation.
-        Each event may have: note, midi, pitch_hz, index, time_sec.
+        [DEPRECATED] Expected note events for pitch evaluation.
+        Prefer session.normalized.pitch.expected_pitch_events.
     performed_pitch_events:
-        Optional sequence of performed note events for pitch evaluation.
-        Same structure as expected_pitch_events.
+        [DEPRECATED] Performed note events for pitch evaluation.
+        Prefer session.normalized.pitch.performed_pitch_events.
     pitch_cents_threshold:
-        Pitch deviation threshold in cents. Default 25.
+        [DEPRECATED] Pitch deviation threshold in cents. Default 25.
+        Prefer session.normalized.pitch.cents_threshold.
 
     Returns
     -------
@@ -227,7 +235,24 @@ def evaluate_session(
     3. Pitch evaluators:
        - pitch_evaluator: WRONG_NOTE / PITCH_DEVIATION
     4. Technique evaluators (future)
+
+    Precedence
+    ----------
+    Existing session.normalized wins over legacy params.
     """
+    # Sprint 3: Normalize session from legacy params
+    # Existing normalized data wins over legacy params
+    session = normalize_session(
+        session,
+        performed_notes=performed_notes,
+        expected_times=expected_times,
+        performed_times=performed_times,
+        timing_threshold_ms=timing_threshold_ms,
+        expected_pitch_events=expected_pitch_events,
+        performed_pitch_events=performed_pitch_events,
+        pitch_cents_threshold=pitch_cents_threshold,
+    )
+
     findings: list[CoachFinding] = []
     strengths: list[str] = []
     weaknesses: list[str] = []
@@ -235,17 +260,13 @@ def evaluate_session(
     # === Layer 1 Coaching Pipelines ===
 
     # Harmony: diminished orbit evaluation
-    findings.extend(_evaluate_diminished_harmony(session, performed_notes))
+    findings.extend(_evaluate_diminished_harmony(session))
 
     # Timing: grid deviation evaluation
-    findings.extend(_evaluate_timing_grid(
-        session, expected_times, performed_times, timing_threshold_ms
-    ))
+    findings.extend(_evaluate_timing_grid(session))
 
     # Pitch: note identity and pitch deviation evaluation
-    findings.extend(_evaluate_pitch_accuracy(
-        session, expected_pitch_events, performed_pitch_events, pitch_cents_threshold
-    ))
+    findings.extend(_evaluate_pitch_accuracy(session))
 
     # Extract timing stats from performance summary
     perf = session.performance

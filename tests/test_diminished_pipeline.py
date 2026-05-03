@@ -17,6 +17,8 @@ from sg_coach.schemas import (
     ProgramRef,
     ProgramType,
     TimingErrorStats,
+    NormalizedSessionData,
+    HarmonyEvaluationInput,
 )
 
 
@@ -46,8 +48,13 @@ class TestDiminishedPipelineGating:
         session = make_session("exercises/diminished/orbit_awareness_C.ztprog")
         # C is outside C's dim orbit (B D F Ab)
         performed_notes = [0]  # C = pitch class 0
+        session = session.model_copy(update={
+            "normalized": NormalizedSessionData(
+                harmony=HarmonyEvaluationInput(key="C", performed_notes=performed_notes)
+            )
+        })
 
-        findings = _evaluate_diminished_harmony(session, performed_notes)
+        findings = _evaluate_diminished_harmony(session)
 
         assert len(findings) == 1
         assert findings[0].type == "harmony"
@@ -57,8 +64,13 @@ class TestDiminishedPipelineGating:
         session = make_session("exercises/diminished/orbit_awareness_C.ztprog")
         # B, D, F, Ab are all in C's dim orbit
         performed_notes = [11, 2, 5, 8]
+        session = session.model_copy(update={
+            "normalized": NormalizedSessionData(
+                harmony=HarmonyEvaluationInput(key="C", performed_notes=performed_notes)
+            )
+        })
 
-        findings = _evaluate_diminished_harmony(session, performed_notes)
+        findings = _evaluate_diminished_harmony(session)
 
         assert len(findings) == 0
 
@@ -66,16 +78,21 @@ class TestDiminishedPipelineGating:
         session = make_session("blues_turnaround_E.ztprog")
         # Even with "bad" notes, should not trigger diminished evaluator
         performed_notes = [0, 1, 2, 3]
+        session = session.model_copy(update={
+            "normalized": NormalizedSessionData(
+                harmony=HarmonyEvaluationInput(performed_notes=performed_notes)
+            )
+        })
 
-        findings = _evaluate_diminished_harmony(session, performed_notes)
+        findings = _evaluate_diminished_harmony(session)
 
         assert len(findings) == 0
 
     def test_diminished_exercise_without_notes_no_finding(self):
         session = make_session("exercises/diminished/orbit_awareness_C.ztprog")
+        # No notes provided - cannot evaluate (no normalized data)
 
-        # No notes provided - cannot evaluate
-        findings = _evaluate_diminished_harmony(session, None)
+        findings = _evaluate_diminished_harmony(session)
 
         assert len(findings) == 0
 
