@@ -61,6 +61,9 @@ from .action_recommender import (
     recommend_actions,
     recommend_actions_batch,
 )
+from .recommendation_integration import (
+    attach_recommendations,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -94,6 +97,8 @@ from .schemas import (
     CoachEvaluation,
     SuggestedAction,
     TargetSpan,
+    # Action recommendations (Sprint 4)
+    ActionRecommendationSet,
     # Assignment layer
     AssignmentConstraints,
     AssignmentFocus,
@@ -152,6 +157,7 @@ __all__ = [
     # Action recommender (Sprint 4)
     "recommend_actions",
     "recommend_actions_batch",
+    "attach_recommendations",
     # Enums
     "ProgramType",
     "Severity",
@@ -177,6 +183,8 @@ __all__ = [
     "CoachEvaluation",
     "SuggestedAction",
     "TargetSpan",
+    # Action recommendations (Sprint 4)
+    "ActionRecommendationSet",
     # Assignment layer
     "AssignmentConstraints",
     "AssignmentFocus",

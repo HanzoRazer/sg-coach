@@ -45,6 +45,8 @@ from sg_spec.schemas.coach_schemas import (
     CoachEvaluation,
     SuggestedAction,
     TargetSpan,
+    # Action recommendations (Sprint 4)
+    ActionRecommendationSet,
     # Assignment layer
     AssignmentConstraints,
     AssignmentFocus,
@@ -101,6 +103,8 @@ __all__ = [
     "CoachEvaluation",
     "SuggestedAction",
     "TargetSpan",
+    # Action recommendations (Sprint 4)
+    "ActionRecommendationSet",
     # Assignment layer
     "AssignmentConstraints",
     "AssignmentFocus",
