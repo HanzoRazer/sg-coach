@@ -57,6 +57,10 @@ from .session_normalizer import (
     has_pitch_input,
     has_harmony_input,
 )
+from .action_recommender import (
+    recommend_actions,
+    recommend_actions_batch,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -145,6 +149,9 @@ __all__ = [
     "TimingEvaluationInput",
     "PitchEvaluationInput",
     "NormalizedSessionData",
+    # Action recommender (Sprint 4)
+    "recommend_actions",
+    "recommend_actions_batch",
     # Enums
     "ProgramType",
     "Severity",
