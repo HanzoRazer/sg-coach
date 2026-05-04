@@ -20,23 +20,32 @@ SessionRecord (facts) → CoachEvaluation (interpretation) → PracticeAssignmen
 GrooveProfileV1 (persistent) → GrooveControlIntentV1 (ephemeral) → MidiControlPlan / ArrangerControlPlan
 ```
 
-## Source of Truth & Stub Pattern
+## Source of Truth
 
-**All schemas and coach logic live in `sg-spec`**. This repo contains only 2 logic files; the other 28 modules are 3-line re-export stubs. **Never add logic to stubs.**
+**Schemas live in `sg-spec`** at `sg_spec.schemas.*`. This repo contains:
+- Layer 1 coaching pipeline (Sprints 1-4)
+- Groove Layer contracts
 
 ```python
-# Exact stub pattern (e.g., src/sg_coach/schemas.py):
-# sg_coach.schemas — re-exported from sg_spec.ai.coach.schemas
-"""Backward compatibility stub. Use sg_spec.ai.coach.schemas directly."""
-from sg_spec.ai.coach.schemas import *
+# Canonical import paths:
+from sg_spec.schemas.coach_schemas import CoachEvaluation, CoachFinding
+from sg_spec.schemas.action_mapping import ActionRecommendationSet
+from sg_coach import evaluate_session, attach_recommendations
+from sg_coach.schemas import SessionRecord, Severity
 ```
 
-**Logic modules** (the only files with real code in this repo):
+**Core modules:**
 
 | Module | Purpose |
 |--------|---------|
-| `groove_intent_engine_v1.py` | Profile → Intent mapper (`ENGINE_IDENTITY = "v1+salt:v1"`) |
-| `groove_replay_gate_v1.py` | Golden vector replay with unified diff output |
+| `coach_policy.py` | `evaluate_session()` — main coaching pipeline |
+| `action_recommender.py` | `recommend_actions()` — finding → actions |
+| `recommendation_integration.py` | `attach_recommendations()` — attach to evaluation |
+| `diminished_evaluator.py` | DIM_ORBIT_VIOLATION detection |
+| `timing_evaluator.py` | TIMING_GRID_DEVIATION detection |
+| `pitch_evaluator.py` | WRONG_NOTE / PITCH_DEVIATION detection |
+| `groove_intent_engine_v1.py` | Profile → Intent mapper |
+| `groove_replay_gate_v1.py` | Golden vector replay |
 
 ## Critical Invariants
 
@@ -105,14 +114,10 @@ Exit codes: 0 = pass, 1 = violation, 2 = execution error. Bootstrap sentinel `.s
 
 ## Testing Conventions
 
-- **Import from stubs** in tests: `from sg_coach.planner_v0_6 import plan_next_v0_6` (not from `sg_spec` directly)
-- **Shared fixtures** in `tests/sgc_fixtures.py` — `make_session_record(bpm=120.0, error_by_step={...})`
+- **Import from sg_coach** in tests: `from sg_coach import evaluate_session, attach_recommendations`
+- **Import schemas** from `sg_coach.schemas` or `sg_spec.schemas.*`
 - **Test naming**: `test_<module>_<scenario>.py` — one module per file
-- **No conftest.py** — simple fixtures via `sgc_fixtures.py`
-
-## Planner Versioning
-
-**Current canonical: `assignment_v0_6.py` / `plan_next_v0_6`**. Legacy stubs (`v0_4`, `v0_5`) retained for rollback compatibility through 2026-Q2. Later versions layer features on v0.6 (not replacements): v0.7 adds commit state reducer, v0.8 adds SQLite store + replay gate, v0.9 adds replay-all, v1.0+ adds fixture generators and meta gates.
+- **conftest.py** sets up path for `shared` module from string_master
 
 ## OTA & Key Management
 
