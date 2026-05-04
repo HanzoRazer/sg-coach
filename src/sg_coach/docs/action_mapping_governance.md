@@ -114,6 +114,92 @@ Layer 1 diagnosis codes requiring mappings:
 
 See [action_mapping_examples.md](action_mapping_examples.md) for concrete mapping definitions.
 
+## Action Selection Rules
+
+The recommendation engine uses these rules to select actions from mappings.
+
+### Severity determines action scope
+
+Finding severity controls whether escalation actions are included.
+
+| Severity | Actions Included |
+|----------|------------------|
+| info | default_actions only |
+| warning / secondary | default_actions only |
+| error / primary | default_actions + escalation_actions |
+| critical | default_actions + escalation_actions |
+
+The engine normalizes both legacy `Severity` and `FeedbackSeverity` internally:
+- `Severity.info` → info
+- `Severity.secondary` → warning
+- `Severity.primary` → error
+- `FeedbackSeverity.critical` → critical
+
+### Location determines retry_section eligibility
+
+Actions with `target_span_required=true` are only included if the finding has location info.
+
+Location exists if any of:
+- `finding.target_span is not None`
+- `finding.evidence.index is not None`
+- `finding.evidence.beat is not None`
+
+**Rule:** If action requires target_span but no location exists, omit that action silently. Do not fail the recommendation set.
+
+### Missing mapping behavior
+
+If no ActionMapping exists for a DiagnosisCode:
+- Return empty `ActionRecommendationSet`
+- Do not crash
+- Set `source = "no_mapping"`
+
+### Duplicate action behavior
+
+If multiple findings recommend the same `action_type`:
+- Keep both actions
+- Do not deduplicate in v1
+- UI may choose to collapse duplicates
+
+### Selection pseudocode
+
+```python
+def select_actions(finding, mapping):
+    if mapping is None:
+        return ActionRecommendationSet(
+            finding_code=finding.code,
+            actions=[],
+            source="no_mapping",
+        )
+    
+    severity = normalize_severity(finding.severity)
+    has_location = (
+        finding.target_span is not None
+        or finding.evidence.index is not None
+        or finding.evidence.beat is not None
+    )
+    
+    actions = []
+    
+    # Add default actions
+    for action in mapping.default_actions:
+        if action.target_span_required and not has_location:
+            continue  # Omit, don't fail
+        actions.append(action)
+    
+    # Add escalation actions for severe findings
+    if severity in ("error", "critical"):
+        for action in mapping.escalation_actions:
+            if action.target_span_required and not has_location:
+                continue
+            actions.append(action)
+    
+    return ActionRecommendationSet(
+        finding_code=finding.code,
+        actions=actions,
+        source="action_mapping",
+    )
+```
+
 ## Schema Reference
 
 ### RecommendedAction
