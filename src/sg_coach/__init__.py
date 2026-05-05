@@ -84,6 +84,10 @@ from .learning_aggregation import (
     aggregate_effectiveness,
     compute_aggregate_confidence,
 )
+from .adaptive_ranking import (
+    rank_recommendations,
+    CONFIDENCE_THRESHOLD,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -195,6 +199,9 @@ __all__ = [
     # Learning aggregation (Sprint 5)
     "aggregate_effectiveness",
     "compute_aggregate_confidence",
+    # Adaptive ranking (Sprint 5)
+    "rank_recommendations",
+    "CONFIDENCE_THRESHOLD",
     # Enums
     "ProgramType",
     "Severity",
