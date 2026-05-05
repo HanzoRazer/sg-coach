@@ -69,6 +69,17 @@ from .feedback_capture import (
     validate_feedback_linkage,
     FeedbackLinkageWarning,
 )
+from .learning_weight import (
+    compute_signal_weight,
+    compute_confidence_modifier,
+    derive_learning_signal,
+    is_weak_signal,
+    BASE_EFFECTIVENESS,
+    OUTCOME_MODIFIER,
+    WEIGHT_MIN,
+    WEIGHT_MAX,
+    WEAK_SIGNAL_THRESHOLD,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -167,6 +178,16 @@ __all__ = [
     "capture_feedback",
     "validate_feedback_linkage",
     "FeedbackLinkageWarning",
+    # Learning weight (Sprint 5)
+    "compute_signal_weight",
+    "compute_confidence_modifier",
+    "derive_learning_signal",
+    "is_weak_signal",
+    "BASE_EFFECTIVENESS",
+    "OUTCOME_MODIFIER",
+    "WEIGHT_MIN",
+    "WEIGHT_MAX",
+    "WEAK_SIGNAL_THRESHOLD",
     # Enums
     "ProgramType",
     "Severity",

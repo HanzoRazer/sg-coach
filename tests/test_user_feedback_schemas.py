@@ -183,7 +183,7 @@ class TestLearningSignal:
         assert signal.action_type == FeedbackActionType.isolate
         assert signal.user_response == UserFeedbackResponseType.helped
         assert signal.outcome == PracticeOutcome.improved
-        assert signal.weight == 1.0  # Default
+        assert signal.weight == 0.0  # Default
         assert signal.id is None
 
     def test_with_id_and_weight(self):
@@ -193,10 +193,10 @@ class TestLearningSignal:
             action_type=FeedbackActionType.slow_down,
             user_response=UserFeedbackResponseType.did_not_help,
             outcome=PracticeOutcome.abandoned,
-            weight=2.5,
+            weight=1.5,
         )
         assert signal.id == "ls_abc123"
-        assert signal.weight == 2.5
+        assert signal.weight == 1.5
 
     def test_weight_bounds(self):
         # Valid bounds
@@ -214,9 +214,9 @@ class TestLearningSignal:
             action_type=FeedbackActionType.repeat,
             user_response=UserFeedbackResponseType.helped,
             outcome=PracticeOutcome.improved,
-            weight=10.0,
+            weight=2.0,
         )
-        assert signal_high.weight == 10.0
+        assert signal_high.weight == 2.0
 
     def test_weight_rejects_out_of_bounds(self):
         with pytest.raises(ValueError):
@@ -225,7 +225,7 @@ class TestLearningSignal:
                 action_type=FeedbackActionType.repeat,
                 user_response=UserFeedbackResponseType.helped,
                 outcome=PracticeOutcome.improved,
-                weight=10.1,
+                weight=2.1,
             )
 
     def test_requires_all_fields(self):
