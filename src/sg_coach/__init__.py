@@ -80,6 +80,10 @@ from .learning_weight import (
     WEIGHT_MAX,
     WEAK_SIGNAL_THRESHOLD,
 )
+from .learning_aggregation import (
+    aggregate_effectiveness,
+    compute_aggregate_confidence,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -188,6 +192,9 @@ __all__ = [
     "WEIGHT_MIN",
     "WEIGHT_MAX",
     "WEAK_SIGNAL_THRESHOLD",
+    # Learning aggregation (Sprint 5)
+    "aggregate_effectiveness",
+    "compute_aggregate_confidence",
     # Enums
     "ProgramType",
     "Severity",
