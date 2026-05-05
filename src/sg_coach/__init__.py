@@ -64,6 +64,11 @@ from .action_recommender import (
 from .recommendation_integration import (
     attach_recommendations,
 )
+from .feedback_capture import (
+    capture_feedback,
+    validate_feedback_linkage,
+    FeedbackLinkageWarning,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -158,6 +163,10 @@ __all__ = [
     "recommend_actions",
     "recommend_actions_batch",
     "attach_recommendations",
+    # Feedback capture (Sprint 5)
+    "capture_feedback",
+    "validate_feedback_linkage",
+    "FeedbackLinkageWarning",
     # Enums
     "ProgramType",
     "Severity",
