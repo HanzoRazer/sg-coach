@@ -231,6 +231,32 @@ Building any of these without knowing the product direction risks optimizing the
 
 ---
 
+## Non-Negotiable Architectural Invariants
+
+Regardless of product direction, these principles protect the coaching spine:
+
+1. **sg-spec remains canonical contract authority.**  
+   All schemas originate in sg-spec. Other repos consume, never define.
+
+2. **Learning signals remain explainable and inspectable.**  
+   No black-box adaptation. Every weight derivation must be traceable.
+
+3. **Coaching decisions must remain traceable to evidence.**  
+   Every finding links to measured facts. No "trust me" diagnoses.
+
+4. **Feedback and outcomes are append-only events.**  
+   Never mutate assignments, findings, or recommendations after creation.
+
+5. **Recommendation ranking may reorder but not invent actions.**  
+   Ranking adjusts priority. It cannot create actions that weren't recommended.
+
+6. **Runtime integrations must not bypass schema governance.**  
+   New runtime callers consume governed schemas. No ad-hoc data shapes.
+
+These invariants hold whether the product becomes a practice coach, real-time assistant, curriculum tutor, or analytics platform. Violating them trades architectural coherence for short-term convenience.
+
+---
+
 ## Next Steps
 
 1. **Stakeholder answers the 10 questions above**
