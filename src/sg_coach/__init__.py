@@ -98,6 +98,11 @@ from .personalization_blend import (
     compute_personalized_action_score,
     rank_recommendations_personalized,
 )
+from .drill_resolver import (
+    resolve_drill,
+    request_from_recommended_action,
+    resolve_drills_for_recommendations,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -220,6 +225,10 @@ __all__ = [
     "compute_blended_effectiveness",
     "compute_personalized_action_score",
     "rank_recommendations_personalized",
+    # Drill resolution (Sprint 8)
+    "resolve_drill",
+    "request_from_recommended_action",
+    "resolve_drills_for_recommendations",
     # Enums
     "ProgramType",
     "Severity",
