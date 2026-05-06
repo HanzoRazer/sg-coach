@@ -103,6 +103,10 @@ from .drill_resolver import (
     request_from_recommended_action,
     resolve_drills_for_recommendations,
 )
+from .practice_assignment_assembler import (
+    assemble_practice_assignment,
+    assemble_practice_assignments,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -229,6 +233,9 @@ __all__ = [
     "resolve_drill",
     "request_from_recommended_action",
     "resolve_drills_for_recommendations",
+    # Practice assignment assembly (Sprint 9)
+    "assemble_practice_assignment",
+    "assemble_practice_assignments",
     # Enums
     "ProgramType",
     "Severity",
