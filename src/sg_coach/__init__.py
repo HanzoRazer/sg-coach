@@ -93,6 +93,11 @@ from .learning_store import (
     aggregate_user_effectiveness,
     aggregate_global_effectiveness,
 )
+from .personalization_blend import (
+    compute_blended_effectiveness,
+    compute_personalized_action_score,
+    rank_recommendations_personalized,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -211,6 +216,10 @@ __all__ = [
     "LearningSignalStore",
     "aggregate_user_effectiveness",
     "aggregate_global_effectiveness",
+    # Personalization blend (Sprint 7)
+    "compute_blended_effectiveness",
+    "compute_personalized_action_score",
+    "rank_recommendations_personalized",
     # Enums
     "ProgramType",
     "Severity",
