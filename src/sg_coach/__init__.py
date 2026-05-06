@@ -88,6 +88,11 @@ from .adaptive_ranking import (
     rank_recommendations,
     CONFIDENCE_THRESHOLD,
 )
+from .learning_store import (
+    LearningSignalStore,
+    aggregate_user_effectiveness,
+    aggregate_global_effectiveness,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -202,6 +207,10 @@ __all__ = [
     # Adaptive ranking (Sprint 5)
     "rank_recommendations",
     "CONFIDENCE_THRESHOLD",
+    # Learning store (Sprint 6)
+    "LearningSignalStore",
+    "aggregate_user_effectiveness",
+    "aggregate_global_effectiveness",
     # Enums
     "ProgramType",
     "Severity",
