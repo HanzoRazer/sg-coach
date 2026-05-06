@@ -107,6 +107,11 @@ from .practice_assignment_assembler import (
     assemble_practice_assignment,
     assemble_practice_assignments,
 )
+from .assignment_outcome import (
+    capture_assignment_outcome,
+    response_type_from_assignment_outcome,
+    assignment_outcome_to_feedback_request,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -236,6 +241,10 @@ __all__ = [
     # Practice assignment assembly (Sprint 9)
     "assemble_practice_assignment",
     "assemble_practice_assignments",
+    # Assignment outcome (Sprint 10)
+    "capture_assignment_outcome",
+    "response_type_from_assignment_outcome",
+    "assignment_outcome_to_feedback_request",
     # Enums
     "ProgramType",
     "Severity",
