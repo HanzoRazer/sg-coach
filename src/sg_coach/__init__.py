@@ -112,6 +112,40 @@ from .assignment_outcome import (
     response_type_from_assignment_outcome,
     assignment_outcome_to_feedback_request,
 )
+from .session_builder import (
+    build_session_from_midi,
+    ENGINE_VERSION as SESSION_BUILDER_VERSION,
+)
+from .practice_history import (
+    PracticeHistoryEntry,
+    PracticeHistoryQuery,
+    PracticeHistoryStats,
+    PracticeHistoryStore,
+    create_history_entry,
+)
+from .practice_review import (
+    build_session_review,
+    build_practice_timeline,
+    build_progress_summary,
+)
+from .goal_tracking import (
+    build_weakness_progressions,
+    generate_practice_goals,
+    build_goal_progress_summary,
+    update_goal_status,
+)
+from .curriculum_alignment import (
+    align_goal_to_curriculum,
+    curriculum_reference_to_drill_reference,
+    build_goal_driven_assignment,
+    build_goal_driven_assignments,
+)
+from .runtime_pipeline import (
+    RUNTIME_VERSION,
+    run_coaching_pipeline,
+    normalize_runtime_output,
+    run_fixture_pipeline,
+)
 
 # Re-export schemas for convenience
 from .schemas import (
@@ -245,6 +279,34 @@ __all__ = [
     "capture_assignment_outcome",
     "response_type_from_assignment_outcome",
     "assignment_outcome_to_feedback_request",
+    # Session builder (Sprint 11)
+    "build_session_from_midi",
+    "SESSION_BUILDER_VERSION",
+    # Practice history (Sprint 11)
+    "PracticeHistoryEntry",
+    "PracticeHistoryQuery",
+    "PracticeHistoryStats",
+    "PracticeHistoryStore",
+    "create_history_entry",
+    # Practice review (Sprint 12)
+    "build_session_review",
+    "build_practice_timeline",
+    "build_progress_summary",
+    # Goal tracking (Sprint 13)
+    "build_weakness_progressions",
+    "generate_practice_goals",
+    "build_goal_progress_summary",
+    "update_goal_status",
+    # Curriculum alignment (Sprint 14)
+    "align_goal_to_curriculum",
+    "curriculum_reference_to_drill_reference",
+    "build_goal_driven_assignment",
+    "build_goal_driven_assignments",
+    # Runtime pipeline (Sprint 15)
+    "RUNTIME_VERSION",
+    "run_coaching_pipeline",
+    "normalize_runtime_output",
+    "run_fixture_pipeline",
     # Enums
     "ProgramType",
     "Severity",

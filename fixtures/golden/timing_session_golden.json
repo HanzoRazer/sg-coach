@@ -1,0 +1,224 @@
+{
+  "session": {
+    "session_id": "<uuid>",
+    "instrument_id": "guitar_1",
+    "engine_version": "sg-coach@1.9.0",
+    "program_ref": {
+      "type": "ztprog",
+      "name": "timing_grid_exercise",
+      "hash": null
+    },
+    "timing": {
+      "bpm": 120.0,
+      "grid": 8,
+      "clave": null,
+      "strict": true,
+      "strict_window_ms": null,
+      "late_drop_ms": 35,
+      "ghost_vel_max": 22,
+      "panic_enabled": true
+    },
+    "duration_s": 10,
+    "performance": {
+      "bars_played": 0,
+      "notes_expected": 4,
+      "notes_played": 4,
+      "notes_dropped": 0,
+      "timing_error_ms": {
+        "mean": 25.0,
+        "std": 25.0,
+        "max": 50.0
+      },
+      "error_by_step": {}
+    },
+    "events": {
+      "late_drops": 0,
+      "panic_triggered": false
+    },
+    "key": null,
+    "normalized": {
+      "harmony": {
+        "key": null,
+        "performed_notes": [
+          0,
+          2,
+          4,
+          5
+        ],
+        "expected_orbit": null
+      },
+      "timing": {
+        "expected_times": [
+          0.0,
+          0.5,
+          1.0,
+          1.5
+        ],
+        "performed_times": [
+          0.0,
+          0.55,
+          1.0,
+          1.55
+        ],
+        "threshold_ms": 40.0
+      },
+      "pitch": null
+    }
+  },
+  "evaluation": {
+    "session_id": "<uuid>",
+    "coach_version": "coach-rules@0.4.0",
+    "findings": [
+      {
+        "id": null,
+        "type": "timing",
+        "severity": "secondary",
+        "evidence": {
+          "step": null,
+          "mean_error_ms": null,
+          "metric": "timing_grid_deviation",
+          "value": 50.00000000000004,
+          "unit": "ms",
+          "threshold": 40.0,
+          "expected": null,
+          "actual": null,
+          "offset_ms": 50.00000000000004,
+          "direction": "late",
+          "index": 1,
+          "beat": null,
+          "key": null,
+          "expected_set": null,
+          "performed_set": null,
+          "aggregate_stats": {
+            "average_abs_error_ms": 25.00000000000002,
+            "max_abs_error_ms": 50.00000000000004,
+            "events_evaluated": 4,
+            "deviation_count": 2,
+            "tempo_bpm": 120.0
+          }
+        },
+        "interpretation": "Timing deviation detected: 50.0ms late (threshold: 40ms). Average error: 25.0ms.",
+        "code": "timing_grid_deviation",
+        "domain": "timing",
+        "title": "Timing grid deviation",
+        "message": "Timing deviation detected: 50.0ms late (threshold: 40ms). Average error: 25.0ms.",
+        "render_hint": "timeline",
+        "suggested_actions": [
+          {
+            "action_type": "repeat",
+            "label": "Repeat section",
+            "rationale": "Practice the same passage again with focus on timing"
+          },
+          {
+            "action_type": "slow_down",
+            "label": "Reduce tempo",
+            "rationale": "Practice at a slower tempo to lock in the grid"
+          },
+          {
+            "action_type": "retry_section",
+            "label": "Retry problem area",
+            "rationale": "Focus on note 2 which was 50ms late"
+          }
+        ],
+        "confidence": 1.0,
+        "source_evaluator": "timing_evaluator",
+        "target_span": null
+      }
+    ],
+    "strengths": [
+      "Good timing consistency",
+      "High note accuracy"
+    ],
+    "weaknesses": [],
+    "focus_recommendation": {
+      "concept": "advancement",
+      "reason": "Ready to increase difficulty or add complexity"
+    },
+    "confidence": 0.5,
+    "recommendations": null
+  },
+  "recommendations": [
+    {
+      "id": null,
+      "finding_code": "timing_grid_deviation",
+      "finding_id": null,
+      "actions": [
+        {
+          "action_type": "slow_down",
+          "label": "Reduce tempo",
+          "rationale": "Slower tempo allows more precise placement",
+          "priority": 1,
+          "params": {
+            "tempo_reduction_pct": 10
+          },
+          "target_span_required": false,
+          "requires_curriculum": false
+        },
+        {
+          "action_type": "repeat",
+          "label": "Repeat with metronome",
+          "rationale": "Lock in to the grid with audible reference",
+          "priority": 2,
+          "params": {},
+          "target_span_required": false,
+          "requires_curriculum": false
+        }
+      ],
+      "source": "action_mapping",
+      "confidence": 1.0,
+      "version": "0.1"
+    }
+  ],
+  "assignments": {
+    "assignments": [
+      {
+        "id": "<generated_id>",
+        "assignment_type": "slow_down",
+        "status": "ready",
+        "title": "Reduce tempo",
+        "instructions": "Slower tempo allows more precise placement",
+        "diagnosis_code": "timing_grid_deviation",
+        "action_type": "slow_down",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 1,
+        "rank_score": null,
+        "reason": null,
+        "params": {
+          "tempo_reduction_pct": 10
+        },
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      },
+      {
+        "id": "<generated_id>",
+        "assignment_type": "repeat",
+        "status": "ready",
+        "title": "Repeat with metronome",
+        "instructions": "Lock in to the grid with audible reference",
+        "diagnosis_code": "timing_grid_deviation",
+        "action_type": "repeat",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 2,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      }
+    ],
+    "source": "practice_assignment_assembler",
+    "version": "0.1"
+  },
+  "goals": [],
+  "goal_driven_assignments": null,
+  "persisted": false,
+  "runtime_version": "1.0.0"
+}

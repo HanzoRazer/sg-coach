@@ -1,0 +1,141 @@
+{
+  "session": {
+    "session_id": "<uuid>",
+    "instrument_id": "guitar_1",
+    "engine_version": "sg-coach@1.9.0",
+    "program_ref": {
+      "type": "ztprog",
+      "name": "diminished_orbit_exercise",
+      "hash": null
+    },
+    "timing": {
+      "bpm": 120.0,
+      "grid": 8,
+      "clave": null,
+      "strict": true,
+      "strict_window_ms": null,
+      "late_drop_ms": 35,
+      "ghost_vel_max": 22,
+      "panic_enabled": true
+    },
+    "duration_s": 10,
+    "performance": {
+      "bars_played": 0,
+      "notes_expected": 4,
+      "notes_played": 4,
+      "notes_dropped": 0,
+      "timing_error_ms": {
+        "mean": 0.0,
+        "std": 0.0,
+        "max": 0.0
+      },
+      "error_by_step": {}
+    },
+    "events": {
+      "late_drops": 0,
+      "panic_triggered": false
+    },
+    "key": null,
+    "normalized": {
+      "harmony": {
+        "key": null,
+        "performed_notes": [
+          0,
+          3,
+          6,
+          10
+        ],
+        "expected_orbit": null
+      },
+      "timing": {
+        "expected_times": [
+          0.0,
+          0.5,
+          1.0,
+          1.5
+        ],
+        "performed_times": [
+          0.0,
+          0.5,
+          1.0,
+          1.5
+        ],
+        "threshold_ms": 40.0
+      },
+      "pitch": {
+        "expected_pitch_events": [
+          {
+            "note": "C4",
+            "time_sec": 0.0
+          },
+          {
+            "note": "Eb4",
+            "time_sec": 0.5
+          },
+          {
+            "note": "Gb4",
+            "time_sec": 1.0
+          },
+          {
+            "note": "A4",
+            "time_sec": 1.5
+          }
+        ],
+        "performed_pitch_events": [
+          {
+            "note": "C4",
+            "midi": 60,
+            "time_sec": 0.0,
+            "velocity": 100
+          },
+          {
+            "note": "D#4",
+            "midi": 63,
+            "time_sec": 0.5,
+            "velocity": 100
+          },
+          {
+            "note": "F#4",
+            "midi": 66,
+            "time_sec": 1.0,
+            "velocity": 100
+          },
+          {
+            "note": "A#4",
+            "midi": 70,
+            "time_sec": 1.5,
+            "velocity": 100
+          }
+        ],
+        "cents_threshold": 25.0
+      }
+    }
+  },
+  "evaluation": {
+    "session_id": "<uuid>",
+    "coach_version": "coach-rules@0.4.0",
+    "findings": [],
+    "strengths": [
+      "Excellent timing precision",
+      "Consistent performance across session",
+      "High note accuracy"
+    ],
+    "weaknesses": [],
+    "focus_recommendation": {
+      "concept": "advancement",
+      "reason": "Ready to increase difficulty or add complexity"
+    },
+    "confidence": 0.5,
+    "recommendations": null
+  },
+  "recommendations": [],
+  "assignments": {
+    "assignments": [],
+    "source": "practice_assignment_assembler",
+    "version": "0.1"
+  },
+  "goals": [],
+  "goal_driven_assignments": null,
+  "persisted": false,
+  "runtime_version": "1.0.0"
+}

@@ -1,0 +1,23 @@
+{
+  "events": [
+    {"type": "note_on", "note": 60, "velocity": 100, "time_sec": 0.0, "channel": 0},
+    {"type": "note_off", "note": 60, "velocity": 0, "time_sec": 0.1, "channel": 0},
+    {"type": "note_on", "note": 62, "velocity": 100, "time_sec": 0.55, "channel": 0},
+    {"type": "note_off", "note": 62, "velocity": 0, "time_sec": 0.65, "channel": 0},
+    {"type": "note_on", "note": 64, "velocity": 100, "time_sec": 1.0, "channel": 0},
+    {"type": "note_off", "note": 64, "velocity": 0, "time_sec": 1.1, "channel": 0},
+    {"type": "note_on", "note": 65, "velocity": 100, "time_sec": 1.55, "channel": 0},
+    {"type": "note_off", "note": 65, "velocity": 0, "time_sec": 1.65, "channel": 0}
+  ],
+  "metadata": {
+    "session_id": "fixture_timing_001",
+    "instrument_id": "guitar_1",
+    "program_id": "timing_grid_exercise",
+    "program_type": "ztprog",
+    "tempo_bpm": 120.0,
+    "grid": 8,
+    "duration_sec": 10,
+    "expected_times": [0.0, 0.5, 1.0, 1.5],
+    "expected_pitch_events": []
+  }
+}

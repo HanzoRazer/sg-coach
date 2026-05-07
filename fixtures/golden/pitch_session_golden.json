@@ -1,0 +1,501 @@
+{
+  "session": {
+    "session_id": "<uuid>",
+    "instrument_id": "guitar_1",
+    "engine_version": "sg-coach@1.9.0",
+    "program_ref": {
+      "type": "ztprog",
+      "name": "pitch_accuracy_exercise",
+      "hash": null
+    },
+    "timing": {
+      "bpm": 60.0,
+      "grid": 8,
+      "clave": null,
+      "strict": true,
+      "strict_window_ms": null,
+      "late_drop_ms": 35,
+      "ghost_vel_max": 22,
+      "panic_enabled": true
+    },
+    "duration_s": 10,
+    "performance": {
+      "bars_played": 0,
+      "notes_expected": 4,
+      "notes_played": 4,
+      "notes_dropped": 0,
+      "timing_error_ms": {
+        "mean": 0.0,
+        "std": 0.0,
+        "max": 0.0
+      },
+      "error_by_step": {}
+    },
+    "events": {
+      "late_drops": 0,
+      "panic_triggered": false
+    },
+    "key": null,
+    "normalized": {
+      "harmony": {
+        "key": null,
+        "performed_notes": [
+          0,
+          3,
+          5,
+          7
+        ],
+        "expected_orbit": null
+      },
+      "timing": {
+        "expected_times": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "performed_times": [
+          0.0,
+          1.0,
+          2.0,
+          3.0
+        ],
+        "threshold_ms": 40.0
+      },
+      "pitch": {
+        "expected_pitch_events": [
+          {
+            "note": "C4",
+            "time_sec": 0.0
+          },
+          {
+            "note": "D4",
+            "time_sec": 1.0
+          },
+          {
+            "note": "E4",
+            "time_sec": 2.0
+          },
+          {
+            "note": "F4",
+            "time_sec": 3.0
+          }
+        ],
+        "performed_pitch_events": [
+          {
+            "note": "C4",
+            "midi": 60,
+            "time_sec": 0.0,
+            "velocity": 100
+          },
+          {
+            "note": "D#4",
+            "midi": 63,
+            "time_sec": 1.0,
+            "velocity": 100
+          },
+          {
+            "note": "F4",
+            "midi": 65,
+            "time_sec": 2.0,
+            "velocity": 100
+          },
+          {
+            "note": "G4",
+            "midi": 67,
+            "time_sec": 3.0,
+            "velocity": 100
+          }
+        ],
+        "cents_threshold": 25.0
+      }
+    }
+  },
+  "evaluation": {
+    "session_id": "<uuid>",
+    "coach_version": "coach-rules@0.4.0",
+    "findings": [
+      {
+        "id": null,
+        "type": "harmony",
+        "severity": "secondary",
+        "evidence": {
+          "step": null,
+          "mean_error_ms": null,
+          "metric": "wrong_note",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "expected": "D4",
+          "actual": "D#4",
+          "offset_ms": null,
+          "direction": null,
+          "index": 1,
+          "beat": null,
+          "key": null,
+          "expected_set": null,
+          "performed_set": null,
+          "aggregate_stats": {
+            "pairs_evaluated": 4,
+            "wrong_notes": 3,
+            "pitch_deviations": 0,
+            "skipped": 0,
+            "length_diff": 0
+          }
+        },
+        "interpretation": "Expected D4 but played D#4",
+        "code": "wrong_note",
+        "domain": "pitch",
+        "title": "Wrong note",
+        "message": "Expected D4 but played D#4",
+        "render_hint": "inline",
+        "suggested_actions": [
+          {
+            "action_type": "isolate",
+            "label": "Isolate problem note",
+            "rationale": "Practice note 2 separately"
+          },
+          {
+            "action_type": "review_reference",
+            "label": "Review expected note",
+            "rationale": "The expected note was D4"
+          },
+          {
+            "action_type": "retry_section",
+            "label": "Retry section",
+            "rationale": "Play the passage again with correct note"
+          }
+        ],
+        "confidence": 1.0,
+        "source_evaluator": "pitch_evaluator",
+        "target_span": null
+      },
+      {
+        "id": null,
+        "type": "harmony",
+        "severity": "secondary",
+        "evidence": {
+          "step": null,
+          "mean_error_ms": null,
+          "metric": "wrong_note",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "expected": "E4",
+          "actual": "F4",
+          "offset_ms": null,
+          "direction": null,
+          "index": 2,
+          "beat": null,
+          "key": null,
+          "expected_set": null,
+          "performed_set": null,
+          "aggregate_stats": null
+        },
+        "interpretation": "Expected E4 but played F4",
+        "code": "wrong_note",
+        "domain": "pitch",
+        "title": "Wrong note",
+        "message": "Expected E4 but played F4",
+        "render_hint": "inline",
+        "suggested_actions": [
+          {
+            "action_type": "isolate",
+            "label": "Isolate problem note",
+            "rationale": "Practice note 3 separately"
+          },
+          {
+            "action_type": "review_reference",
+            "label": "Review expected note",
+            "rationale": "The expected note was E4"
+          },
+          {
+            "action_type": "retry_section",
+            "label": "Retry section",
+            "rationale": "Play the passage again with correct note"
+          }
+        ],
+        "confidence": 1.0,
+        "source_evaluator": "pitch_evaluator",
+        "target_span": null
+      },
+      {
+        "id": null,
+        "type": "harmony",
+        "severity": "secondary",
+        "evidence": {
+          "step": null,
+          "mean_error_ms": null,
+          "metric": "wrong_note",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "expected": "F4",
+          "actual": "G4",
+          "offset_ms": null,
+          "direction": null,
+          "index": 3,
+          "beat": null,
+          "key": null,
+          "expected_set": null,
+          "performed_set": null,
+          "aggregate_stats": null
+        },
+        "interpretation": "Expected F4 but played G4",
+        "code": "wrong_note",
+        "domain": "pitch",
+        "title": "Wrong note",
+        "message": "Expected F4 but played G4",
+        "render_hint": "inline",
+        "suggested_actions": [
+          {
+            "action_type": "isolate",
+            "label": "Isolate problem note",
+            "rationale": "Practice note 4 separately"
+          },
+          {
+            "action_type": "review_reference",
+            "label": "Review expected note",
+            "rationale": "The expected note was F4"
+          },
+          {
+            "action_type": "retry_section",
+            "label": "Retry section",
+            "rationale": "Play the passage again with correct note"
+          }
+        ],
+        "confidence": 1.0,
+        "source_evaluator": "pitch_evaluator",
+        "target_span": null
+      }
+    ],
+    "strengths": [
+      "Excellent timing precision",
+      "Consistent performance across session",
+      "High note accuracy"
+    ],
+    "weaknesses": [],
+    "focus_recommendation": {
+      "concept": "advancement",
+      "reason": "Ready to increase difficulty or add complexity"
+    },
+    "confidence": 0.5,
+    "recommendations": null
+  },
+  "recommendations": [
+    {
+      "id": null,
+      "finding_code": "wrong_note",
+      "finding_id": null,
+      "actions": [
+        {
+          "action_type": "isolate",
+          "label": "Isolate problem note",
+          "rationale": "Practice the correct note in isolation",
+          "priority": 1,
+          "params": {},
+          "target_span_required": true,
+          "requires_curriculum": false
+        },
+        {
+          "action_type": "review_reference",
+          "label": "Review expected note",
+          "rationale": "Confirm the correct note before retrying",
+          "priority": 2,
+          "params": {},
+          "target_span_required": false,
+          "requires_curriculum": false
+        }
+      ],
+      "source": "action_mapping",
+      "confidence": 1.0,
+      "version": "0.1"
+    },
+    {
+      "id": null,
+      "finding_code": "wrong_note",
+      "finding_id": null,
+      "actions": [
+        {
+          "action_type": "isolate",
+          "label": "Isolate problem note",
+          "rationale": "Practice the correct note in isolation",
+          "priority": 1,
+          "params": {},
+          "target_span_required": true,
+          "requires_curriculum": false
+        },
+        {
+          "action_type": "review_reference",
+          "label": "Review expected note",
+          "rationale": "Confirm the correct note before retrying",
+          "priority": 2,
+          "params": {},
+          "target_span_required": false,
+          "requires_curriculum": false
+        }
+      ],
+      "source": "action_mapping",
+      "confidence": 1.0,
+      "version": "0.1"
+    },
+    {
+      "id": null,
+      "finding_code": "wrong_note",
+      "finding_id": null,
+      "actions": [
+        {
+          "action_type": "isolate",
+          "label": "Isolate problem note",
+          "rationale": "Practice the correct note in isolation",
+          "priority": 1,
+          "params": {},
+          "target_span_required": true,
+          "requires_curriculum": false
+        },
+        {
+          "action_type": "review_reference",
+          "label": "Review expected note",
+          "rationale": "Confirm the correct note before retrying",
+          "priority": 2,
+          "params": {},
+          "target_span_required": false,
+          "requires_curriculum": false
+        }
+      ],
+      "source": "action_mapping",
+      "confidence": 1.0,
+      "version": "0.1"
+    }
+  ],
+  "assignments": {
+    "assignments": [
+      {
+        "id": "<generated_id>",
+        "assignment_type": "isolate",
+        "status": "ready",
+        "title": "Isolate problem note",
+        "instructions": "Practice the correct note in isolation",
+        "diagnosis_code": "wrong_note",
+        "action_type": "isolate",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 1,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      },
+      {
+        "id": "<generated_id>",
+        "assignment_type": "isolate",
+        "status": "ready",
+        "title": "Isolate problem note",
+        "instructions": "Practice the correct note in isolation",
+        "diagnosis_code": "wrong_note",
+        "action_type": "isolate",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 1,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      },
+      {
+        "id": "<generated_id>",
+        "assignment_type": "isolate",
+        "status": "ready",
+        "title": "Isolate problem note",
+        "instructions": "Practice the correct note in isolation",
+        "diagnosis_code": "wrong_note",
+        "action_type": "isolate",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 1,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      },
+      {
+        "id": "<generated_id>",
+        "assignment_type": "review",
+        "status": "ready",
+        "title": "Review expected note",
+        "instructions": "Confirm the correct note before retrying",
+        "diagnosis_code": "wrong_note",
+        "action_type": "review_reference",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 2,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      },
+      {
+        "id": "<generated_id>",
+        "assignment_type": "review",
+        "status": "ready",
+        "title": "Review expected note",
+        "instructions": "Confirm the correct note before retrying",
+        "diagnosis_code": "wrong_note",
+        "action_type": "review_reference",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 2,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      },
+      {
+        "id": "<generated_id>",
+        "assignment_type": "review",
+        "status": "ready",
+        "title": "Review expected note",
+        "instructions": "Confirm the correct note before retrying",
+        "diagnosis_code": "wrong_note",
+        "action_type": "review_reference",
+        "finding_id": null,
+        "recommendation_id": null,
+        "drill_resolution_id": null,
+        "drill": null,
+        "target_span": null,
+        "priority": 2,
+        "rank_score": null,
+        "reason": null,
+        "params": {},
+        "source": "practice_assignment_assembler",
+        "version": "0.1"
+      }
+    ],
+    "source": "practice_assignment_assembler",
+    "version": "0.1"
+  },
+  "goals": [],
+  "goal_driven_assignments": null,
+  "persisted": false,
+  "runtime_version": "1.0.0"
+}

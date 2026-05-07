@@ -1,0 +1,28 @@
+{
+  "events": [
+    {"type": "note_on", "note": 60, "velocity": 100, "time_sec": 0.0, "channel": 0},
+    {"type": "note_off", "note": 60, "velocity": 0, "time_sec": 0.5, "channel": 0},
+    {"type": "note_on", "note": 63, "velocity": 100, "time_sec": 1.0, "channel": 0},
+    {"type": "note_off", "note": 63, "velocity": 0, "time_sec": 1.5, "channel": 0},
+    {"type": "note_on", "note": 65, "velocity": 100, "time_sec": 2.0, "channel": 0},
+    {"type": "note_off", "note": 65, "velocity": 0, "time_sec": 2.5, "channel": 0},
+    {"type": "note_on", "note": 67, "velocity": 100, "time_sec": 3.0, "channel": 0},
+    {"type": "note_off", "note": 67, "velocity": 0, "time_sec": 3.5, "channel": 0}
+  ],
+  "metadata": {
+    "session_id": "fixture_pitch_001",
+    "instrument_id": "guitar_1",
+    "program_id": "pitch_accuracy_exercise",
+    "program_type": "ztprog",
+    "tempo_bpm": 60.0,
+    "grid": 8,
+    "duration_sec": 10,
+    "expected_times": [0.0, 1.0, 2.0, 3.0],
+    "expected_pitch_events": [
+      {"note": "C4", "time_sec": 0.0},
+      {"note": "D4", "time_sec": 1.0},
+      {"note": "E4", "time_sec": 2.0},
+      {"note": "F4", "time_sec": 3.0}
+    ]
+  }
+}
