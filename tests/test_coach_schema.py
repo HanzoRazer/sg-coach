@@ -6,7 +6,7 @@ Validates the three-layer separation:
 - CoachEvaluation: grounded interpretation
 - PracticeAssignment: constrained intent
 
-Updated to test unified schema from shared.coach_schemas.
+Tests the unified schema from sg_coach.schemas.
 """
 from datetime import datetime, timezone
 from uuid import UUID, uuid4

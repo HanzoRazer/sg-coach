@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Sequence
 
-from shared.zone_tritone import (
+from sg_spec.music.pitch_class import (
     is_in_dim_orbit,
     get_dim_set_for_key,
     pc_from_name,

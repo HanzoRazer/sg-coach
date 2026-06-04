@@ -139,12 +139,171 @@ from .curriculum_alignment import (
     curriculum_reference_to_drill_reference,
     build_goal_driven_assignment,
     build_goal_driven_assignments,
+    build_progression_recommendation,
 )
 from .runtime_pipeline import (
     RUNTIME_VERSION,
     run_coaching_pipeline,
     normalize_runtime_output,
     run_fixture_pipeline,
+)
+from .practice_dashboard import (
+    DASHBOARD_VERSION,
+    build_practice_dashboard,
+)
+from .session_playback import (
+    PLAYBACK_VERSION,
+    DEFAULT_FINDING_WINDOW_MS,
+    build_session_playback,
+)
+from .teacher_review import (
+    TEACHER_REVIEW_VERSION,
+    build_teacher_review,
+    create_teacher_annotation,
+    create_teacher_recommendation,
+)
+from .teacher_review_store import (
+    TeacherReviewStore,
+)
+from .studio_roster_store import (
+    STUDIO_ROSTER_VERSION,
+    StudioRosterStore,
+)
+from .practice_queue import (
+    QUEUE_VERSION,
+    build_practice_queue,
+    queue_priority_for_assignment,
+    sort_practice_queue,
+    mark_assignment_active,
+    mark_assignment_completed,
+    mark_assignment_deferred,
+    mark_assignment_abandoned,
+    next_queue_assignment,
+)
+from .practice_queue_store import (
+    PRACTICE_QUEUE_STORE_VERSION,
+    PracticeQueueStore,
+)
+from .outcome_integration import (
+    OUTCOME_INTEGRATION_VERSION,
+    outcome_to_queue_status,
+    should_advance_curriculum,
+    process_assignment_outcome,
+)
+from .runtime_flow import (
+    RUNTIME_FLOW_VERSION,
+    start_runtime_session,
+    complete_runtime_session,
+    abandon_runtime_session,
+    start_next_queue_assignment,
+    attach_session_record,
+    attach_evaluation,
+    attach_runtime_evidence,
+    runtime_session_has_evidence,
+)
+from .runtime_flow_store import (
+    RUNTIME_FLOW_STORE_VERSION,
+    RuntimeFlowStore,
+)
+from .runtime_review import (
+    RUNTIME_REVIEW_BUILDER_VERSION,
+    build_runtime_evidence_summary,
+    build_runtime_outcome_summary,
+    build_runtime_review_report,
+)
+from .longitudinal_review import (
+    LONGITUDINAL_REVIEW_BUILDER_VERSION,
+    build_diagnosis_trend_summary,
+    build_outcome_trajectory_summary,
+    build_longitudinal_progress_review,
+)
+from .pedagogical_ledger import (
+    PEDAGOGICAL_LEDGER_BUILDER_VERSION,
+    ledger_entries_from_runtime_review,
+    ledger_entries_from_longitudinal_review,
+    ledger_entry_from_queue_event,
+    ledger_entries_from_teacher_review,
+    ledger_entry_from_assignment_outcome,
+    ledger_entry_from_practice_assignment,
+    ledger_entry_from_curriculum_recommendation,
+    ledger_entry_from_teacher_scheduling_mediation,
+    build_pedagogical_evidence_ledger,
+    build_pedagogical_evidence_summary,
+)
+from .pedagogical_ledger_store import (
+    PEDAGOGICAL_LEDGER_STORE_VERSION,
+    PedagogicalLedgerStore,
+)
+from .adaptive_scheduling import (
+    ADAPTIVE_SCHEDULING_VERSION,
+    REPEATED_OUTCOME_THRESHOLD,
+    RECURRING_DIAGNOSIS_THRESHOLD,
+    ABANDONMENT_THRESHOLD,
+    build_adaptive_scheduling_recommendations,
+    build_adaptive_scheduling_plan,
+    apply_adaptive_recommendations_to_queue,
+)
+from .teacher_scheduling_mediation import (
+    TEACHER_SCHEDULING_MEDIATION_VERSION,
+    create_teacher_scheduling_mediation,
+    effective_recommendation_from_mediation,
+    effective_scheduling_decision_from_mediation,
+    apply_mediation_to_queue,
+)
+from .teacher_scheduling_mediation_store import (
+    TEACHER_SCHEDULING_MEDIATION_STORE_VERSION,
+    TeacherSchedulingMediationStore,
+)
+from .pedagogical_visualization import (
+    PEDAGOGICAL_VISUALIZATION_VERSION,
+    timeline_event_from_entry,
+    timeline_events_from_ledger,
+    build_diagnosis_timeline_groups,
+    build_pedagogical_timeline_view,
+)
+from .guided_practice_view import (
+    GUIDED_PRACTICE_VIEW_VERSION,
+    INSTRUCTIONS_PREVIEW_MAX_LENGTH,
+    build_assignment_view,
+    build_playback_view,
+    build_adaptive_view,
+    build_mediation_view,
+    build_guided_practice_session_view,
+)
+from .pedagogical_narrative import (
+    PEDAGOGICAL_NARRATIVE_ENGINE_VERSION,
+    build_guided_session_narrative,
+    build_runtime_review_narrative,
+    build_longitudinal_review_narrative,
+)
+from .session_workspace import (
+    SESSION_WORKSPACE_ENGINE_VERSION,
+    PANE_ORDER,
+    PANE_TITLES,
+    build_workspace_panes,
+    build_workspace_layout,
+    build_session_workspace_projection,
+)
+from .workspace_export import (
+    WORKSPACE_EXPORT_ENGINE_VERSION,
+    build_workspace_export_manifest,
+    build_workspace_export_package,
+    redact_workspace_export_package,
+)
+from .frontend_state import (
+    FRONTEND_STATE_ENGINE_VERSION,
+    build_frontend_pane_states,
+    build_workspace_navigation_state,
+    build_workspace_frontend_state,
+)
+from .frontend_interaction import (
+    FRONTEND_INTERACTION_ENGINE_VERSION,
+    generate_event_id,
+    apply_frontend_interaction,
+)
+from .frontend_interaction_store import (
+    FRONTEND_INTERACTION_STORE_VERSION,
+    FrontendInteractionStore,
 )
 
 # Re-export schemas for convenience
@@ -297,16 +456,144 @@ __all__ = [
     "generate_practice_goals",
     "build_goal_progress_summary",
     "update_goal_status",
-    # Curriculum alignment (Sprint 14)
+    # Curriculum alignment (Sprint 14, 22)
     "align_goal_to_curriculum",
     "curriculum_reference_to_drill_reference",
     "build_goal_driven_assignment",
     "build_goal_driven_assignments",
+    "build_progression_recommendation",
     # Runtime pipeline (Sprint 15)
     "RUNTIME_VERSION",
     "run_coaching_pipeline",
     "normalize_runtime_output",
     "run_fixture_pipeline",
+    # Practice dashboard (Sprint 17)
+    "DASHBOARD_VERSION",
+    "build_practice_dashboard",
+    # Session playback (Sprint 18)
+    "PLAYBACK_VERSION",
+    "DEFAULT_FINDING_WINDOW_MS",
+    "build_session_playback",
+    # Teacher review (Sprint 19)
+    "TEACHER_REVIEW_VERSION",
+    "build_teacher_review",
+    "create_teacher_annotation",
+    "create_teacher_recommendation",
+    "TeacherReviewStore",
+    # Studio roster (Sprint 20)
+    "STUDIO_ROSTER_VERSION",
+    "StudioRosterStore",
+    # Practice queue (Sprint 23)
+    "QUEUE_VERSION",
+    "build_practice_queue",
+    "queue_priority_for_assignment",
+    "sort_practice_queue",
+    "mark_assignment_active",
+    "mark_assignment_completed",
+    "mark_assignment_deferred",
+    "mark_assignment_abandoned",
+    "next_queue_assignment",
+    "PRACTICE_QUEUE_STORE_VERSION",
+    "PracticeQueueStore",
+    # Outcome integration (Sprint 24)
+    "OUTCOME_INTEGRATION_VERSION",
+    "outcome_to_queue_status",
+    "should_advance_curriculum",
+    "process_assignment_outcome",
+    # Runtime flow (Sprint 25, 26)
+    "RUNTIME_FLOW_VERSION",
+    "start_runtime_session",
+    "complete_runtime_session",
+    "abandon_runtime_session",
+    "start_next_queue_assignment",
+    "attach_session_record",
+    "attach_evaluation",
+    "attach_runtime_evidence",
+    "runtime_session_has_evidence",
+    "RUNTIME_FLOW_STORE_VERSION",
+    "RuntimeFlowStore",
+    # Runtime review (Sprint 27)
+    "RUNTIME_REVIEW_BUILDER_VERSION",
+    "build_runtime_evidence_summary",
+    "build_runtime_outcome_summary",
+    "build_runtime_review_report",
+    # Longitudinal review (Sprint 28)
+    "LONGITUDINAL_REVIEW_BUILDER_VERSION",
+    "build_diagnosis_trend_summary",
+    "build_outcome_trajectory_summary",
+    "build_longitudinal_progress_review",
+    # Pedagogical ledger (Sprint 29)
+    "PEDAGOGICAL_LEDGER_BUILDER_VERSION",
+    "ledger_entries_from_runtime_review",
+    "ledger_entries_from_longitudinal_review",
+    "ledger_entry_from_queue_event",
+    "ledger_entries_from_teacher_review",
+    "ledger_entry_from_assignment_outcome",
+    "ledger_entry_from_practice_assignment",
+    "ledger_entry_from_curriculum_recommendation",
+    "build_pedagogical_evidence_ledger",
+    "build_pedagogical_evidence_summary",
+    "PEDAGOGICAL_LEDGER_STORE_VERSION",
+    "PedagogicalLedgerStore",
+    # Adaptive scheduling (Sprint 30)
+    "ADAPTIVE_SCHEDULING_VERSION",
+    "REPEATED_OUTCOME_THRESHOLD",
+    "RECURRING_DIAGNOSIS_THRESHOLD",
+    "ABANDONMENT_THRESHOLD",
+    "build_adaptive_scheduling_recommendations",
+    "build_adaptive_scheduling_plan",
+    "apply_adaptive_recommendations_to_queue",
+    # Teacher scheduling mediation (Sprint 31, 32)
+    "TEACHER_SCHEDULING_MEDIATION_VERSION",
+    "create_teacher_scheduling_mediation",
+    "effective_recommendation_from_mediation",
+    "effective_scheduling_decision_from_mediation",
+    "apply_mediation_to_queue",
+    "ledger_entry_from_teacher_scheduling_mediation",
+    "TEACHER_SCHEDULING_MEDIATION_STORE_VERSION",
+    "TeacherSchedulingMediationStore",
+    # Pedagogical visualization (Sprint 33)
+    "PEDAGOGICAL_VISUALIZATION_VERSION",
+    "timeline_event_from_entry",
+    "timeline_events_from_ledger",
+    "build_diagnosis_timeline_groups",
+    "build_pedagogical_timeline_view",
+    # Guided practice view (Sprint 34)
+    "GUIDED_PRACTICE_VIEW_VERSION",
+    "INSTRUCTIONS_PREVIEW_MAX_LENGTH",
+    "build_assignment_view",
+    "build_playback_view",
+    "build_adaptive_view",
+    "build_mediation_view",
+    "build_guided_practice_session_view",
+    # Pedagogical narrative (Sprint 35)
+    "PEDAGOGICAL_NARRATIVE_ENGINE_VERSION",
+    "build_guided_session_narrative",
+    "build_runtime_review_narrative",
+    "build_longitudinal_review_narrative",
+    # Session workspace (Sprint 36)
+    "SESSION_WORKSPACE_ENGINE_VERSION",
+    "PANE_ORDER",
+    "PANE_TITLES",
+    "build_workspace_panes",
+    "build_workspace_layout",
+    "build_session_workspace_projection",
+    # Workspace export (Sprint 37)
+    "WORKSPACE_EXPORT_ENGINE_VERSION",
+    "build_workspace_export_manifest",
+    "build_workspace_export_package",
+    "redact_workspace_export_package",
+    # Frontend state (Sprint 38)
+    "FRONTEND_STATE_ENGINE_VERSION",
+    "build_frontend_pane_states",
+    "build_workspace_navigation_state",
+    "build_workspace_frontend_state",
+    # Frontend interaction (Sprint 39)
+    "FRONTEND_INTERACTION_ENGINE_VERSION",
+    "generate_event_id",
+    "apply_frontend_interaction",
+    "FRONTEND_INTERACTION_STORE_VERSION",
+    "FrontendInteractionStore",
     # Enums
     "ProgramType",
     "Severity",

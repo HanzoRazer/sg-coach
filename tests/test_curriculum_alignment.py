@@ -2,16 +2,17 @@
 Tests for Curriculum Alignment builders.
 
 Sprint 14: Tests for goal-driven curriculum alignment and assignment selection.
+Sprint 21: Updated to use sg-curriculum as canonical authority.
 """
 import pytest
 
 from sg_coach.curriculum_alignment import (
-    DEFAULT_CURRICULUM_ALIGNMENTS,
     align_goal_to_curriculum,
     build_goal_driven_assignment,
     build_goal_driven_assignments,
     curriculum_reference_to_drill_reference,
 )
+from sg_curriculum import DEFAULT_CURRICULUM_REGISTRY
 from sg_spec.schemas.adaptive_feedback import DiagnosisCode
 from sg_spec.schemas.curriculum_alignment import (
     CurriculumAlignmentRequest,
@@ -45,34 +46,34 @@ def make_goal(
 
 
 class TestDefaultRegistry:
-    """Test DEFAULT_CURRICULUM_ALIGNMENTS registry."""
+    """Test DEFAULT_CURRICULUM_REGISTRY from sg-curriculum."""
 
     def test_contains_dim_orbit_violation(self):
-        assert DiagnosisCode.DIM_ORBIT_VIOLATION in DEFAULT_CURRICULUM_ALIGNMENTS
+        assert DiagnosisCode.DIM_ORBIT_VIOLATION in DEFAULT_CURRICULUM_REGISTRY
 
     def test_contains_timing_grid_deviation(self):
-        assert DiagnosisCode.TIMING_GRID_DEVIATION in DEFAULT_CURRICULUM_ALIGNMENTS
+        assert DiagnosisCode.TIMING_GRID_DEVIATION in DEFAULT_CURRICULUM_REGISTRY
 
     def test_contains_wrong_note(self):
-        assert DiagnosisCode.WRONG_NOTE in DEFAULT_CURRICULUM_ALIGNMENTS
+        assert DiagnosisCode.WRONG_NOTE in DEFAULT_CURRICULUM_REGISTRY
 
     def test_contains_pitch_deviation(self):
-        assert DiagnosisCode.PITCH_DEVIATION in DEFAULT_CURRICULUM_ALIGNMENTS
+        assert DiagnosisCode.PITCH_DEVIATION in DEFAULT_CURRICULUM_REGISTRY
 
     def test_all_references_are_drills(self):
-        for code, ref in DEFAULT_CURRICULUM_ALIGNMENTS.items():
+        for code, ref in DEFAULT_CURRICULUM_REGISTRY.items():
             assert ref.content_type == CurriculumContentType.drill
 
     def test_all_references_have_diagnosis_code(self):
-        for code, ref in DEFAULT_CURRICULUM_ALIGNMENTS.items():
+        for code, ref in DEFAULT_CURRICULUM_REGISTRY.items():
             assert ref.diagnosis_code == code
 
     def test_all_references_have_content_id(self):
-        for code, ref in DEFAULT_CURRICULUM_ALIGNMENTS.items():
+        for code, ref in DEFAULT_CURRICULUM_REGISTRY.items():
             assert len(ref.content_id) > 0
 
     def test_all_references_have_title(self):
-        for code, ref in DEFAULT_CURRICULUM_ALIGNMENTS.items():
+        for code, ref in DEFAULT_CURRICULUM_REGISTRY.items():
             assert len(ref.title) > 0
 
 
@@ -122,7 +123,7 @@ class TestAlignGoalToCurriculum:
         assert result.reason == "no_curriculum_alignment"
 
     def test_registry_reference_not_mutated(self):
-        original_ref = DEFAULT_CURRICULUM_ALIGNMENTS[DiagnosisCode.TIMING_GRID_DEVIATION]
+        original_ref = DEFAULT_CURRICULUM_REGISTRY[DiagnosisCode.TIMING_GRID_DEVIATION]
         original_goal_id = original_ref.goal_id
 
         goal = make_goal(goal_id="goal_test_mutation")
@@ -452,6 +453,73 @@ class TestBuildGoalDrivenAssignments:
         assert result.assignments[0].drill.drill_id == "custom_drill_v1"
 
 
+class TestBuildProgressionRecommendation:
+    """Test build_progression_recommendation function (Sprint 22)."""
+
+    def test_returns_recommendation_for_known_diagnosis(self):
+        from sg_coach.curriculum_alignment import build_progression_recommendation
+        from sg_spec.schemas.curriculum_progression import (
+            CurriculumProgressState,
+            CurriculumRecommendation,
+        )
+
+        progress = CurriculumProgressState(
+            student_id="test_student",
+            completed_content_ids=[],
+        )
+        rec = build_progression_recommendation(
+            diagnosis_code=DiagnosisCode.DIM_ORBIT_VIOLATION,
+            progress_state=progress,
+        )
+        assert rec is not None
+        assert isinstance(rec, CurriculumRecommendation)
+        assert rec.content_id == "diminished_orbit_navigation_foundation_v1"
+
+    def test_returns_none_for_unknown_diagnosis(self):
+        from sg_coach.curriculum_alignment import build_progression_recommendation
+        from sg_spec.schemas.curriculum_progression import CurriculumProgressState
+
+        progress = CurriculumProgressState(
+            student_id="test_student",
+            completed_content_ids=[],
+        )
+        rec = build_progression_recommendation(
+            diagnosis_code=DiagnosisCode.RUSHING,
+            progress_state=progress,
+        )
+        assert rec is None
+
+    def test_returns_none_when_all_completed(self):
+        from sg_coach.curriculum_alignment import build_progression_recommendation
+        from sg_spec.schemas.curriculum_progression import CurriculumProgressState
+
+        progress = CurriculumProgressState(
+            student_id="test_student",
+            completed_content_ids=["diminished_orbit_navigation_foundation_v1"],
+        )
+        rec = build_progression_recommendation(
+            diagnosis_code=DiagnosisCode.DIM_ORBIT_VIOLATION,
+            progress_state=progress,
+        )
+        assert rec is None
+
+    def test_prerequisite_satisfied_for_foundation(self):
+        from sg_coach.curriculum_alignment import build_progression_recommendation
+        from sg_spec.schemas.curriculum_progression import CurriculumProgressState
+
+        progress = CurriculumProgressState(
+            student_id="test_student",
+            completed_content_ids=[],
+        )
+        rec = build_progression_recommendation(
+            diagnosis_code=DiagnosisCode.TIMING_GRID_DEVIATION,
+            progress_state=progress,
+        )
+        assert rec is not None
+        assert rec.prerequisite_satisfied is True
+        assert rec.recommended_next is True
+
+
 class TestSchemaExports:
     """Test that curriculum alignment functions are exported correctly."""
 
@@ -466,3 +534,7 @@ class TestSchemaExports:
         assert curriculum_reference_to_drill_reference is not None
         assert build_goal_driven_assignment is not None
         assert build_goal_driven_assignments is not None
+
+    def test_import_build_progression_recommendation(self):
+        from sg_coach import build_progression_recommendation
+        assert build_progression_recommendation is not None
