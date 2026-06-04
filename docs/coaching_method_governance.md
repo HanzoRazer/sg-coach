@@ -77,10 +77,20 @@ ear training are all future learning domains of the musicianship layer.
 
 ## Out of Scope (Sprint 40)
 
-- New evaluators
+Sprint 40 is documentation-only. It adds **no** new:
+
+- evaluators
 - Audio DSP
 - AI generation
-- New runtime code or schemas
+- runtime code or schemas
+
+This is a statement about *Sprint 40's deliverables*, not about the platform.
+The coaching engine (practice queue, runtime sessions, outcomes, teacher review,
+evidence ledger, adaptive scheduling, UX projections, frontend interaction
+state) already exists in code. Per the governing doctrine — *capability breadth
+exists; the user-facing promise stays narrow* — these governance rules apply to
+that already-implemented breadth. See the MVP Boundaries section of the
+[Coaching Method Architecture](../../sg-spec/docs/coaching_method_architecture.md).
 
 ## Related Documents
 
