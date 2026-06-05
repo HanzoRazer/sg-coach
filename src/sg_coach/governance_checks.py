@@ -45,6 +45,51 @@ def assert_no_hidden_shared_imports(root: Path) -> list[str]:
     return violations
 
 
+_FORBIDDEN_IMPORT_RE = re.compile(r"^\s*(?:from|import)\s+([A-Za-z_][\w.]*)")
+_FORBIDDEN_IMPORT_ROOTS = ("shared", "string_master", "zone_tritone")
+
+
+def assert_no_string_master_dependency(root: Path) -> list[str]:
+    """
+    Check for any hidden dependency on the legacy string_master monorepo.
+
+    Flags import statements (in src/ or tests/) whose root module is one of
+    ``shared``, ``string_master`` or ``zone_tritone``. The canonical music
+    vocabulary lives in ``sg_spec.music``; nothing in sg-coach may reach back
+    into string_master.
+
+    Only real ``import``/``from`` statements are flagged — comment lines and
+    string literals (e.g. test fixtures) are skipped, so documenting the
+    forbidden patterns does not trip the guard.
+
+    Returns list of violation strings (empty if clean).
+    """
+    violations: list[str] = []
+
+    for search_dir in (root / "src", root / "tests"):
+        if not search_dir.exists():
+            continue
+        for py_file in search_dir.rglob("*.py"):
+            if _should_exclude(py_file):
+                continue
+            try:
+                content = py_file.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            for i, line in enumerate(content.splitlines(), start=1):
+                stripped = line.strip()
+                if stripped.startswith("#") or stripped.startswith('"') or stripped.startswith("'"):
+                    continue
+                match = _FORBIDDEN_IMPORT_RE.match(line)
+                if not match:
+                    continue
+                root_module = match.group(1).split(".")[0]
+                if root_module in _FORBIDDEN_IMPORT_ROOTS:
+                    violations.append(f"{py_file.relative_to(root)}:{i}: {stripped}")
+
+    return violations
+
+
 def assert_no_pr_snapshot_dirs(root: Path) -> list[str]:
     """
     Check for PR snapshot directories that should not exist.
@@ -115,6 +160,7 @@ def check_ai_provisional_status_doc(root: Path) -> list[str]:
 def run_all_governance_checks(
     repo_root: Path,
     check_shared_imports: bool = True,
+    check_string_master: bool = True,
     check_pr_snapshots: bool = True,
     check_feedback_boundary: bool = True,
     check_ai_docs: bool = False,
@@ -129,6 +175,9 @@ def run_all_governance_checks(
 
     if check_shared_imports:
         results["hidden_shared_imports"] = assert_no_hidden_shared_imports(repo_root)
+
+    if check_string_master:
+        results["string_master_dependency"] = assert_no_string_master_dependency(repo_root)
 
     if check_pr_snapshots:
         results["pr_snapshot_dirs"] = assert_no_pr_snapshot_dirs(repo_root)
@@ -160,6 +209,7 @@ def _should_exclude(path: Path) -> bool:
 
 __all__ = [
     "assert_no_hidden_shared_imports",
+    "assert_no_string_master_dependency",
     "assert_no_pr_snapshot_dirs",
     "assert_no_collapsed_feedback_boundary",
     "check_ai_provisional_status_doc",
