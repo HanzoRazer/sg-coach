@@ -1,18 +1,19 @@
 """
 Test configuration for sg-coach.
 
-Sets up Python path to include shared modules from string_master.
-This is a fallback if string_master is not installed as an editable package.
+Sprint 41: no path hacks. sg-coach depends only on installed packages
+(`sg-spec`, `sg-curriculum`) plus its own `src/`. There is intentionally NO
+`sys.path` injection of `string_master` here — the canonical music vocabulary
+lives in `sg_spec.music` (see sg-spec docs/music_vocabulary_authority.md).
+
+Reproducible local setup:
+
+    pip install -e ../sg-spec
+    pip install -e ../sg-curriculum
+    pip install -e .
+    pytest
+
+Do not re-introduce a string_master / shared / zone_tritone path fallback here;
+the hidden-dependency guard (tests/test_no_hidden_string_master_dependency.py)
+exists to keep this boundary clean.
 """
-import sys
-from pathlib import Path
-
-# Try relative path first (sibling directory), then absolute path
-_TESTS_DIR = Path(__file__).parent
-_STRING_MASTER_RELATIVE = _TESTS_DIR.parent.parent.parent / "string_master_v.4.0" / "src"
-_STRING_MASTER_ABSOLUTE = Path(r"c:\Users\thepr\Downloads\string_master_v.4.0\src")
-
-for candidate in [_STRING_MASTER_RELATIVE, _STRING_MASTER_ABSOLUTE]:
-    if candidate.exists() and str(candidate) not in sys.path:
-        sys.path.insert(0, str(candidate))
-        break

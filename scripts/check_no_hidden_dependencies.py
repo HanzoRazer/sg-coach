@@ -15,9 +15,8 @@ import re
 import sys
 from pathlib import Path
 
-SHARED_IMPORT_PATTERN = re.compile(
-    r"^\s*(?:from\s+shared\.|import\s+shared\.)",
-)
+FORBIDDEN_IMPORT_PATTERN = re.compile(r"^\s*(?:from|import)\s+([A-Za-z_][\w.]*)")
+FORBIDDEN_IMPORT_ROOTS = ("shared", "string_master", "zone_tritone")
 
 EXCLUDED_PATTERNS = [
     "*.pyc",
@@ -63,7 +62,8 @@ def find_hidden_imports(root: Path) -> list[tuple[Path, int, str]]:
             if stripped.startswith("#") or stripped.startswith('"') or stripped.startswith("'"):
                 continue
             # Only match actual import statements
-            if stripped.startswith("from shared.") or stripped.startswith("import shared."):
+            match = FORBIDDEN_IMPORT_PATTERN.match(line)
+            if match and match.group(1).split(".")[0] in FORBIDDEN_IMPORT_ROOTS:
                 violations.append((py_file, i, stripped))
 
     return violations
@@ -87,7 +87,8 @@ def main() -> int:
         violations.extend(find_hidden_imports(tests_dir))
 
     if violations:
-        print("ERROR: Hidden shared.* imports detected:")
+        print("ERROR: Hidden string_master dependency detected")
+        print("(shared.* / string_master.* / zone_tritone.* imports):")
         print()
         for path, line_num, content in violations:
             rel_path = path.relative_to(root)
@@ -99,7 +100,7 @@ def main() -> int:
         print("     with 'from sg_spec.music.pitch_class import ...'")
         return 1
 
-    print("OK: No hidden shared.* imports found.")
+    print("OK: No hidden shared/string_master/zone_tritone imports found.")
     return 0
 
 
