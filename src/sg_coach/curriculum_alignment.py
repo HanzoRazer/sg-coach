@@ -1,26 +1,31 @@
 """
 Curriculum Alignment — Goal-driven curriculum mapping and assignment selection.
 
-Sprint 14: Static curriculum alignment, no full sg-curriculum runtime yet.
+Sprint 14: Static curriculum alignment.
+Sprint 21: Migrated to use sg-curriculum as canonical authority.
+Sprint 22: Added build_progression_recommendation() for curriculum sequencing.
 
 This module provides:
 - align_goal_to_curriculum(): Align a goal to curriculum content
 - curriculum_reference_to_drill_reference(): Convert to DrillReference
 - build_goal_driven_assignment(): Create assignment from alignment
 - build_goal_driven_assignments(): Batch assignment generation
+- build_progression_recommendation(): Get next curriculum step for a diagnosis
 
 Core rules:
 - Alignment is deterministic in v1
-- sg-coach registry is temporary (sg-curriculum becomes canonical later)
+- sg-curriculum is the canonical curriculum authority
 - Goals are aligned by DiagnosisCode
 - Missing alignment becomes unresolved assignment, not exception
+- Progression recommendations are deterministic (no ML)
 
-Ownership: sg-coach (static alignment, temporary)
-Schemas: sg-spec (CurriculumReference, CurriculumAlignmentResult)
+Ownership: sg-coach (alignment logic)
+Curriculum: sg-curriculum (canonical content)
+Schemas: sg-spec (CurriculumReference, CurriculumAlignmentResult, CurriculumRecommendation)
 """
 from __future__ import annotations
 
-from typing import Dict, List, Mapping, Optional, Sequence
+from typing import List, Mapping, Optional, Sequence
 
 from sg_spec.schemas.adaptive_feedback import DiagnosisCode
 from sg_spec.schemas.curriculum_alignment import (
@@ -28,6 +33,10 @@ from sg_spec.schemas.curriculum_alignment import (
     CurriculumAlignmentResult,
     CurriculumContentType,
     CurriculumReference,
+)
+from sg_spec.schemas.curriculum_progression import (
+    CurriculumProgressState,
+    CurriculumRecommendation,
 )
 from sg_spec.schemas.drill_resolution import DrillDifficulty, DrillReference
 from sg_spec.schemas.feedback_vocabulary import FeedbackActionType
@@ -39,57 +48,7 @@ from sg_spec.schemas.practice_assignment import (
     PracticeAssignmentType,
 )
 
-
-DEFAULT_CURRICULUM_ALIGNMENTS: Dict[DiagnosisCode, CurriculumReference] = {
-    DiagnosisCode.DIM_ORBIT_VIOLATION: CurriculumReference(
-        content_id="diminished_orbit_navigation_foundation_v1",
-        title="Diminished Orbit Navigation Foundation",
-        content_type=CurriculumContentType.drill,
-        source="sg-coach",
-        diagnosis_code=DiagnosisCode.DIM_ORBIT_VIOLATION,
-        difficulty=DrillDifficulty.beginner,
-        tags=["diminished", "harmony", "foundation"],
-        params={
-            "description": "Practice navigating diminished chord patterns.",
-        },
-    ),
-    DiagnosisCode.TIMING_GRID_DEVIATION: CurriculumReference(
-        content_id="timing_grid_alignment_foundation_v1",
-        title="Timing Grid Alignment Foundation",
-        content_type=CurriculumContentType.drill,
-        source="sg-coach",
-        diagnosis_code=DiagnosisCode.TIMING_GRID_DEVIATION,
-        difficulty=DrillDifficulty.beginner,
-        tags=["timing", "grid", "foundation"],
-        params={
-            "description": "Practice timing accuracy and grid alignment.",
-        },
-    ),
-    DiagnosisCode.WRONG_NOTE: CurriculumReference(
-        content_id="single_note_accuracy_foundation_v1",
-        title="Single Note Accuracy Foundation",
-        content_type=CurriculumContentType.drill,
-        source="sg-coach",
-        diagnosis_code=DiagnosisCode.WRONG_NOTE,
-        difficulty=DrillDifficulty.beginner,
-        tags=["pitch", "accuracy", "foundation"],
-        params={
-            "description": "Practice single note selection and accuracy.",
-        },
-    ),
-    DiagnosisCode.PITCH_DEVIATION: CurriculumReference(
-        content_id="pitch_centering_foundation_v1",
-        title="Pitch Centering Foundation",
-        content_type=CurriculumContentType.drill,
-        source="sg-coach",
-        diagnosis_code=DiagnosisCode.PITCH_DEVIATION,
-        difficulty=DrillDifficulty.beginner,
-        tags=["pitch", "intonation", "foundation"],
-        params={
-            "description": "Practice pitch centering and intonation control.",
-        },
-    ),
-}
+from sg_curriculum import get_curriculum_for_diagnosis, get_next_curriculum_step
 
 
 def align_goal_to_curriculum(
@@ -105,7 +64,7 @@ def align_goal_to_curriculum(
     request:
         The alignment request containing the goal.
     registry:
-        Optional custom registry. Defaults to DEFAULT_CURRICULUM_ALIGNMENTS.
+        Optional custom registry. If None, uses sg-curriculum canonical lookup.
 
     Returns
     -------
@@ -118,20 +77,29 @@ def align_goal_to_curriculum(
     - Sets goal_id on copied reference if goal has an id
     - Applies preferred_difficulty if provided in request
     """
-    if registry is None:
-        registry = DEFAULT_CURRICULUM_ALIGNMENTS
-
     diagnosis_code = request.goal.diagnosis_code
 
-    if diagnosis_code not in registry:
-        return CurriculumAlignmentResult(
-            resolved=False,
-            request=request,
-            reason="no_curriculum_alignment",
-        )
-
-    registry_ref = registry[diagnosis_code]
-    copied_ref = registry_ref.model_copy(deep=True)
+    if registry is not None:
+        # Custom registry provided (for testing)
+        if diagnosis_code not in registry:
+            return CurriculumAlignmentResult(
+                resolved=False,
+                request=request,
+                reason="no_curriculum_alignment",
+            )
+        registry_ref = registry[diagnosis_code]
+        copied_ref = registry_ref.model_copy(deep=True)
+    else:
+        # Use canonical sg-curriculum lookup
+        refs = get_curriculum_for_diagnosis(diagnosis_code)
+        if not refs:
+            return CurriculumAlignmentResult(
+                resolved=False,
+                request=request,
+                reason="no_curriculum_alignment",
+            )
+        # get_curriculum_for_diagnosis already returns deep copies
+        copied_ref = refs[0]
 
     if request.goal.id is not None:
         copied_ref = CurriculumReference(
@@ -323,7 +291,7 @@ def build_goal_driven_assignments(
     preferred_difficulty:
         Optional difficulty preference applied to all alignments.
     registry:
-        Optional custom registry. Defaults to DEFAULT_CURRICULUM_ALIGNMENTS.
+        Optional custom registry. If None, uses sg-curriculum canonical lookup.
 
     Returns
     -------
@@ -364,10 +332,54 @@ def build_goal_driven_assignments(
     )
 
 
+def build_progression_recommendation(
+    *,
+    diagnosis_code: DiagnosisCode,
+    progress_state: CurriculumProgressState,
+) -> Optional[CurriculumRecommendation]:
+    """
+    Get the next curriculum step recommendation for a diagnosis.
+
+    Parameters
+    ----------
+    diagnosis_code:
+        The diagnosis code to get next step for.
+    progress_state:
+        Current student progress state (from caller's persistence).
+
+    Returns
+    -------
+    CurriculumRecommendation if a next step exists, None otherwise.
+
+    Notes
+    -----
+    This is the sg-coach wrapper for sg-curriculum's get_next_curriculum_step.
+    It provides a consistent interface for curriculum progression within the
+    coaching pipeline.
+
+    Rules:
+    1. Find progression path for diagnosis
+    2. Skip completed content_ids
+    3. Skip deferred content_ids (first pass)
+    4. Return first incomplete step with prerequisite status
+    5. Fall back to deferred content if nothing else available
+    6. Return None if all content completed
+
+    The caller is responsible for:
+    - Constructing CurriculumProgressState from their persistence layer
+    - Handling prerequisite_satisfied=False cases
+    - Updating progress state when content is completed
+    """
+    return get_next_curriculum_step(
+        diagnosis_code=diagnosis_code,
+        progress_state=progress_state,
+    )
+
+
 __all__ = [
-    "DEFAULT_CURRICULUM_ALIGNMENTS",
     "align_goal_to_curriculum",
     "curriculum_reference_to_drill_reference",
     "build_goal_driven_assignment",
     "build_goal_driven_assignments",
+    "build_progression_recommendation",
 ]

@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     "pydantic>=2.0",
     "sg-spec @ git+https://github.com/HanzoRazer/sg-spec.git",
+    "sg-curriculum>=0.1.0",
 ]
 
 [project.optional-dependencies]
