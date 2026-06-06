@@ -26,7 +26,9 @@ classifiers = [
 
 dependencies = [
     "pydantic>=2.0",
-    "sg-spec @ git+https://github.com/HanzoRazer/sg-spec.git",
+    # Pinned (Sprint 47): floating authority contract is floating debt. Pinned to
+    # an immutable sg-spec commit even though this repo is deprecated/legacy.
+    "sg-spec @ git+https://github.com/HanzoRazer/sg-spec.git@ffc761a562a3dc71607afacb10bacc88ad1193e6",
     "sg-curriculum>=0.1.0",
 ]
 
